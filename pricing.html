@@ -113,6 +113,10 @@ let currentSession = null;
 let isLoggedIn = false;
 
 (async () => {
+    // Handle auth callback from email confirmation (token in URL hash)
+    if (location.hash.includes('access_token') || location.hash.includes('error')) {
+        await sb.auth.exchangeCodeForSession?.(location.search);
+    }
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
         currentSession = session;
@@ -150,12 +154,15 @@ let isLoggedIn = false;
 })();
 
 async function checkout(plan) {
-    // Not logged in? Save plan and redirect to registration
-    if (!isLoggedIn || !currentSession) {
+    // Refresh session before checkout
+    const { data: { session: freshSession } } = await sb.auth.getSession();
+    if (!freshSession) {
         sessionStorage.setItem('ppc_selected_plan', plan);
         location.href = 'login.html?plan=' + plan;
         return;
     }
+    currentSession = freshSession;
+    isLoggedIn = true;
 
     const btn = plan === 'starter' ? document.getElementById('btn-starter') : document.getElementById('btn-pro');
     btn.disabled = true;
@@ -174,6 +181,9 @@ async function checkout(plan) {
         const data = await res.json();
         if (data.url) {
             location.href = data.url;
+        } else if (data.error === 'Invalid token' || data.error === 'No auth header') {
+            // Session expired - redirect to login
+            location.href = 'login.html?plan=' + plan;
         } else {
             document.getElementById('msg').className = 'msg error';
             document.getElementById('msg').textContent = 'Fehler: ' + (data.error || data.message || JSON.stringify(data));
