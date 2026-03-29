@@ -133,7 +133,13 @@ document.getElementById('reg-btn').addEventListener('click', async () => {
             emailRedirectTo: location.origin + '/ppc-tools-app/login.html'
         }
     });
-    if (error) { showMsg('Fehler: ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Konto erstellen'; return; }
+    if (error) {
+        let msg = 'Fehler: ' + error.message;
+        if (error.message.includes('rate limit') || error.message.includes('429')) {
+            msg = 'Zu viele Registrierungen in kurzer Zeit. Bitte warte 1 Stunde und versuche es erneut.';
+        }
+        showMsg(msg, 'error'); btn.disabled = false; btn.textContent = 'Konto erstellen'; return;
+    }
     if (data.user) {
         // Try to save profile (might fail if user already exists, that's ok)
         try { await sb.from('ppc_profiles').upsert({ user_id: data.user.id, company_name: company }); } catch(e) {}
