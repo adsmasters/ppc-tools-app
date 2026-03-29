@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rechnungen - AdsMasters PPC Tools</title>
+    <script>
+        // Apply theme BEFORE any rendering to prevent flash of wrong theme
+        (function() {
+            var t = localStorage.getItem('ppc_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="auth-guard.js"></script>
     <style>
@@ -79,23 +86,24 @@
     </div>
 
 <script>
-const SUPABASE_URL = 'https://moxvqkisroonmdinmjat.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHZxa2lzcm9vbm1kaW5tamF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NjcwMjQsImV4cCI6MjA5MDM0MzAyNH0.MuTqA684d3H3ZUrnxOcVQpU10NVa9Pdgb0tviV-kf04';
-
+// Use sb client from auth-guard.js (already loaded)
 (async () => {
     // Wait for auth-guard to finish
-    while (!window.ppcUser) {
+    let attempts = 0;
+    while (!window.ppcUser && attempts < 50) {
         await new Promise(r => setTimeout(r, 100));
+        attempts++;
     }
+    if (!window.ppcUser) return;
 
-    const { data: { session } } = await window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
 
     try {
         const res = await fetch(SUPABASE_URL + '/functions/v1/get-invoices', {
             headers: {
                 'Authorization': 'Bearer ' + session.access_token,
-                'apikey': SUPABASE_KEY,
+                'apikey': SUPABASE_ANON_KEY,
             },
         });
         const data = await res.json();

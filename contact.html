@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kontakt - AdsMasters PPC Tools</title>
+    <script>
+        (function() {
+            var t = localStorage.getItem('ppc_theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
     <script src="auth-guard.js"></script>
     <style>
@@ -141,8 +147,7 @@
     </div>
 
 <script>
-const SUPABASE_URL = 'https://moxvqkisroonmdinmjat.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHZxa2lzcm9vbm1kaW5tamF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NjcwMjQsImV4cCI6MjA5MDM0MzAyNH0.MuTqA684d3H3ZUrnxOcVQpU10NVa9Pdgb0tviV-kf04';
+// Uses SUPABASE_URL, SUPABASE_ANON_KEY and sb from auth-guard.js
 
 // Tabs
 document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
@@ -164,7 +169,6 @@ function hideMsg() {
 }
 
 async function getSession() {
-    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const { data: { session } } = await sb.auth.getSession();
     return session;
 }
@@ -184,7 +188,7 @@ async function sendSupport() {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + session.access_token,
-                'apikey': SUPABASE_KEY,
+                'apikey': SUPABASE_ANON_KEY,
             },
             body: JSON.stringify({ type: 'support', subject, message }),
         });
@@ -218,7 +222,7 @@ async function sendFeature() {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + session.access_token,
-                'apikey': SUPABASE_KEY,
+                'apikey': SUPABASE_ANON_KEY,
             },
             body: JSON.stringify({ type: 'feature_request', what, why, output, tool }),
         });
