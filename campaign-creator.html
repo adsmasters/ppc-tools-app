@@ -1,0 +1,2293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kampagnen Ersteller - AdsMasters PPC Tools</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="auth-guard.js"></script>
+    <meta name="ui-lang" content="de">
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* --- Theme Variables --- */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-hover: #1c2129;
+            --border: #30363d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #3551FF;
+            --accent-hover: #2a41cc;
+            --error: #f85149;
+            --error-bg: #f8514911;
+            --error-bg-hover: #f8514922;
+            --warn: #d29922;
+            --warn-bg: #d2992211;
+            --success: #3fb950;
+            --success-bg: #3fb95011;
+            --overlay: rgba(0,0,0,0.7);
+        }
+        [data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f6f8fa;
+            --bg-hover: #eef1f5;
+            --border: #d0d7de;
+            --text-primary: #1f2328;
+            --text-secondary: #656d76;
+            --accent: #3551FF;
+            --accent-hover: #2a41cc;
+            --error: #cf222e;
+            --error-bg: #cf222e11;
+            --error-bg-hover: #cf222e22;
+            --warn: #9a6700;
+            --warn-bg: #9a670011;
+            --success: #1a7f37;
+            --success-bg: #1a7f3711;
+            --overlay: rgba(0,0,0,0.4);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .topbar-left { display: flex; align-items: center; gap: 32px; }
+        .topbar-logo { font-size: 18px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .topbar-logo span { color: var(--accent); }
+        .topbar-nav { display: flex; gap: 16px; }
+        .topbar-nav a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .topbar-nav a:hover { color: var(--text-primary); }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-logout:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+        .theme-toggle { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; line-height: 1; display: flex; align-items: center; gap: 6px; }
+        .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+        .lang-toggle { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 700; line-height: 1; display: flex; align-items: center; gap: 2px; }
+        .lang-toggle .lang-opt { padding: 2px 6px; border-radius: 3px; }
+        .lang-toggle .lang-opt.active { background: var(--accent); color: #fff; }
+        .lang-toggle:hover { border-color: var(--accent); }
+
+        .main { max-width: 1400px; margin: 0 auto; padding: 24px 32px 60px; }
+        .page-header { margin-bottom: 24px; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .page-sub { font-size: 14px; color: var(--text-secondary); }
+
+        .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+
+        .card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+        .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card-title .step { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+
+        label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+        input[type="text"], input[type="number"], input[type="date"], select, textarea {
+            width: 100%; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px;
+            color: var(--text-primary); font-size: 13px; font-family: Arial, sans-serif;
+        }
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
+        textarea { resize: vertical; min-height: 60px; }
+        .field { margin-bottom: 14px; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+        .toggle-group { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; margin-bottom: 14px; }
+        .toggle-btn { flex: 1; padding: 8px 12px; background: var(--bg-primary); color: var(--text-secondary); border: none; font-size: 13px; cursor: pointer; text-align: center; font-weight: 600; }
+        .toggle-btn.active { background: var(--accent); color: #fff; }
+
+        .section-label { font-size: 14px; font-weight: 700; margin: 18px 0 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+        .section-label:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+
+        .counter { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; padding: 8px 12px; background: var(--bg-primary); border-radius: 6px; }
+        .counter-item { font-size: 12px; color: var(--text-secondary); }
+        .counter-item strong { color: var(--text-primary); }
+
+        .campaign-option { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin-bottom: 10px; }
+        .campaign-option-header { display: flex; align-items: center; gap: 10px; }
+        .campaign-option-header input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+        .campaign-option-header .co-label { font-size: 13px; font-weight: 600; color: var(--text-primary); flex: 1; }
+        .campaign-option-fields { display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+        .campaign-option-fields .mini-field { display: flex; flex-direction: column; gap: 2px; }
+        .campaign-option-fields .mini-field label { font-size: 11px; margin-bottom: 0; }
+        .campaign-option-fields .mini-field input { width: 90px; padding: 6px 8px; font-size: 12px; }
+        .campaign-option-fields .mini-field.neg-check { flex-direction: row; align-items: center; gap: 4px; }
+        .campaign-option-fields .mini-field.neg-check label { margin-bottom: 0; }
+        .campaign-option-fields .mini-field.neg-check input { width: 16px; }
+        .auto-sub { margin-top: 10px; padding: 10px; background: var(--bg-secondary); border-radius: 6px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .auto-sub-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+        .auto-sub-item input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--accent); }
+        .auto-sub-item input[type="number"] { width: 70px; padding: 4px 6px; font-size: 12px; }
+
+        .btn-row { display: flex; gap: 12px; margin-top: 24px; justify-content: flex-end; }
+        .btn { padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-secondary:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+        .lang-select { display: flex; gap: 6px; margin-bottom: 4px; }
+        .lang-btn { padding: 5px 14px; border-radius: 5px; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-secondary); cursor: pointer; font-size: 12px; font-weight: 600; }
+        .lang-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .lang-hint { font-size: 11px; color: var(--text-secondary); margin-bottom: 14px; }
+
+        .product-block { border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 14px; background: var(--bg-primary); position: relative; }
+        .product-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .product-block-header span { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+        .product-block-actions { display: flex; gap: 6px; }
+        .btn-sm { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary); }
+        .btn-sm:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-sm.danger { color: var(--error); border-color: var(--error); }
+        .btn-sm.danger:hover { background: var(--error-bg-hover); }
+        .btn-add-product { display: inline-flex; align-items: center; gap: 4px; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px dashed var(--border); background: transparent; color: var(--text-secondary); margin-top: 4px; }
+        .btn-add-product:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .field-hint { font-size: 11px; color: var(--text-secondary); margin-top: 2px; font-weight: 400; }
+        .error-container { margin-bottom: 16px; }
+        .error-msg { color: var(--error); font-size: 13px; padding: 8px 12px; border: 1px solid var(--error); border-radius: 6px; margin-bottom: 6px; background: var(--error-bg); }
+        .warn-msg { color: var(--warn); font-size: 13px; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 6px; margin-bottom: 6px; background: var(--warn-bg); }
+        .success-msg { color: var(--success); font-size: 13px; padding: 8px 12px; border: 1px solid var(--success); border-radius: 6px; margin-bottom: 6px; background: var(--success-bg); animation: fadeOut 0.5s ease 3s forwards; }
+        @keyframes fadeOut { to { opacity: 0; } }
+
+        .progress-bar { position: fixed; top: 0; left: 0; height: 3px; background: var(--accent); z-index: 300; transition: width 0.3s; }
+        @keyframes progressPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+        .tooltip-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--border); color: var(--text-secondary); font-size: 10px; font-weight: 700; cursor: help; position: relative; flex-shrink: 0; }
+        .tooltip-icon:hover::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-primary); padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 400; white-space: nowrap; max-width: 280px; white-space: normal; z-index: 50; margin-bottom: 6px; line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+
+        textarea.drag-over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--bg-primary)); }
+        .drop-hint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary)); border: 2px dashed var(--accent); border-radius: 6px; color: var(--accent); font-size: 13px; font-weight: 600; pointer-events: none; z-index: 5; }
+
+        .label-row { display: flex; align-items: center; justify-content: space-between; }
+        .btn-import { padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary); }
+        .btn-import:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .import-input { display: none; }
+
+        .preset-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+        .preset-bar select { flex: 1; min-width: 150px; }
+        .preset-bar .btn-sm { white-space: nowrap; }
+
+        .accumulator-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; }
+        .acc-count { font-size: 14px; font-weight: 600; flex: 1; }
+        .acc-products { margin-bottom: 20px; }
+        .acc-product-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 6px; margin-bottom: 4px; font-size: 13px; }
+        .acc-product-item button { background: none; border: none; color: var(--error); cursor: pointer; font-size: 16px; font-weight: 700; padding: 0 4px; }
+        .acc-product-item button:hover { opacity: 0.7; }
+        .acc-success-banner { position: fixed; top: 60px; left: 50%; transform: translateX(-50%); background: var(--success-bg); border: 1px solid var(--success); color: var(--success); padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 600; z-index: 300; animation: fadeOut 0.5s ease 2.5s forwards; }
+
+        .preview-overlay { position: fixed; inset: 0; background: var(--overlay); z-index: 200; display: flex; align-items: center; justify-content: center; }
+        .preview-modal { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; max-width: 95vw; max-height: 90vh; width: 1200px; display: flex; flex-direction: column; }
+        .preview-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+        .preview-header h3 { font-size: 16px; font-weight: 700; }
+        .preview-summary { display: flex; gap: 16px; flex-wrap: wrap; padding: 12px 20px; background: var(--bg-primary); border-bottom: 1px solid var(--border); }
+        .preview-summary .stat { font-size: 13px; color: var(--text-secondary); }
+        .preview-summary .stat strong { color: var(--text-primary); }
+        .preview-body { overflow: auto; flex: 1; padding: 0; }
+        .preview-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .preview-table th { background: var(--bg-primary); position: sticky; top: 0; padding: 8px 10px; text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .preview-table td { padding: 6px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; color: var(--text-primary); }
+        .preview-table tr:hover td { background: var(--bg-hover); }
+        .preview-footer { display: flex; justify-content: space-between; align-items: center; padding: 14px 20px; border-top: 1px solid var(--border); }
+        .preview-footer .info { font-size: 12px; color: var(--text-secondary); }
+
+        @media (max-width: 900px) {
+            .layout { grid-template-columns: 1fr; }
+            .topbar { padding: 0 16px; }
+            .main { padding: 16px; }
+            .preset-bar { flex-direction: column; align-items: stretch; }
+            .preset-bar select { min-width: 100%; }
+        }
+        @media (max-width: 600px) {
+            .topbar { height: auto; padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+            .topbar-left { gap: 12px; }
+            .topbar-logo { font-size: 15px; }
+            .main { padding: 12px 10px; }
+            .page-title { font-size: 20px; }
+            .card { padding: 16px; }
+            .field-row { grid-template-columns: 1fr; }
+            .campaign-option-fields { flex-direction: column; align-items: stretch; }
+            .campaign-option-fields .mini-field input { width: 100%; }
+            .auto-sub { grid-template-columns: 1fr; }
+            .btn-row { flex-direction: column; }
+            .btn-row .btn { width: 100%; text-align: center; }
+            .label-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+            .preview-modal { width: 100vw; max-height: 100vh; border-radius: 0; }
+            .preview-summary { flex-direction: column; gap: 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="dashboard.html" class="topbar-logo">Ads<span>Masters</span> PPC Tools</a>
+        <nav class="topbar-nav">
+            <a href="dashboard.html" data-i18n="nav_dashboard">Dashboard</a>
+            <a href="campaign-creator.html">Kampagnen Ersteller</a>
+            <a href="keyword-harvesting.html">Keyword Harvesting</a>
+            <a href="wasted-spend.html">Wasted Ad Spend</a>
+            <a href="bid-optimizer.html">Bid Optimizer</a>
+            <a href="negative-manager.html">Negatives</a>
+            <a href="audit.html">Audit</a>
+            <a href="asin-optimizer.html">ASIN Optimizer</a>
+            <a href="help.html" data-i18n="nav_help">Hilfe</a>
+        </nav>
+    </div>
+    <div class="topbar-right">
+        <button class="lang-toggle" id="uiLangToggle" onclick="toggleUILang()" title="Sprache / Language"><span class="lang-opt active" id="langOptDE">DE</span><span class="lang-opt" id="langOptEN">EN</span></button>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Theme wechseln"><span id="themeIcon">🌙</span> <span id="themeLabel">Dark</span></button>
+        <button class="btn-logout" onclick="ppcLogout()" data-i18n="btn_logout">Logout</button>
+    </div>
+</div>
+
+<div class="main">
+    <div class="page-header">
+        <h1 class="page-title" data-i18n="page_title">Kampagnen Ersteller</h1>
+        <p class="page-sub" data-i18n="page_sub">Amazon Sponsored Products Bulk Upload Sheet Generator</p>
+    </div>
+
+    <!-- Vorlage Bar -->
+    <div class="preset-bar">
+        <select id="presetSelect"><option value="">— Vorlage wählen —</option></select>
+        <button class="btn-sm" onclick="loadPreset()">Laden</button>
+        <button class="btn-sm" onclick="savePreset()">Speichern</button>
+        <button class="btn-sm danger" onclick="deletePreset()">Löschen</button>
+        <input type="file" id="presetImportFile" class="import-input" accept=".json">
+    </div>
+
+    <div class="layout">
+        <!-- LEFT COLUMN -->
+        <div class="col-left">
+            <!-- STEP 1 -->
+            <div class="card">
+                <div class="card-title"><span class="step">1</span> <span data-i18n="step1_title">Beworbene Produkte</span></div>
+
+                <div class="toggle-group">
+                    <button class="toggle-btn" data-i18n="toggle_vendor" onclick="setMode('vendor')">Vendor: ASIN Listen</button>
+                    <button class="toggle-btn active" data-i18n="toggle_seller" onclick="setMode('seller')">Seller: SKU Listen</button>
+                </div>
+
+                <!-- Marketplace removed - all values are English for all marketplaces -->
+                <input type="hidden" id="marketplaceSelect" value="en">
+
+                <div class="field">
+                    <label data-i18n="lbl_product_name">Produktname</label>
+                    <div class="field-hint" data-i18n="hint_product_name">(wird für die Kampagnenbenennung verwendet)</div>
+                    <input type="text" id="productName" placeholder="z.B. Langhantel" data-i18n-ph="ph_product_name">
+                </div>
+                <div class="field">
+                    <label class="productListLabel" id="productListLabel" data-i18n="lbl_skus">SKUs (eine pro Zeile)</label>
+                    <textarea id="productList" rows="4" placeholder="B0XXXXXX&#10;B0YYYYYY"></textarea>
+                </div>
+                <div class="field">
+                    <label><span data-i18n="lbl_portfolio_id">Portfolio-ID</span> <span style="font-weight:400;color:#8b949e;" data-i18n="lbl_optional">(optional)</span></label>
+                    <input type="text" id="portfolioId" placeholder="z.B. 123456789" data-i18n-ph="ph_portfolio_id">
+                </div>
+            </div>
+
+            <!-- STEP 2 -->
+            <div class="card">
+                <div class="card-title"><span class="step">2</span> <span data-i18n="step2_title">Keywords &amp; Targeting</span></div>
+
+                <!-- Generic Keywords -->
+                <div class="section-label" data-i18n="sec_generic_kw">Generische Keywords</div>
+                <div class="field">
+                    <div class="label-row"><label data-i18n="lbl_generic_kw">Keywords (eine pro Zeile)</label><button class="btn-import" onclick="triggerImport('genericKw')" data-i18n="btn_csv_import">CSV/Excel Import</button><input type="file" class="import-input" accept=".csv,.xlsx,.xls,.tsv" data-target="genericKw"></div>
+                    <textarea id="genericKw" rows="4" placeholder="langhantel&#10;langhantelstange&#10;hantelstange"></textarea>
+                </div>
+                <div class="field">
+                    <label><span data-i18n="lbl_kw_allocation">Keyword Allocation (pro Kampagne)</span> <span class="tooltip-icon" data-tip="Anzahl Keywords pro Kampagne. Wenn du z.B. 50 Keywords und Allocation 10 hast, werden 5 Kampagnen mit je 10 Keywords erstellt." data-i18n-tip="tip_kw_allocation">?</span></label>
+                    <textarea id="genericAlloc" rows="1" placeholder="10"></textarea>
+                </div>
+                <div class="counter" id="genericCounter">
+                    <div class="counter-item"><span data-i18n="cnt_keywords">Keywords:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_allocated">Zugeordnet:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_remaining">Übrig:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_campaigns">Kampagnen:</span> <strong>0</strong></div>
+                </div>
+
+                <!-- Brand Keywords -->
+                <div class="section-label" data-i18n="sec_brand_kw">Eigenmarken Keywords</div>
+                <div class="field">
+                    <div class="label-row"><label data-i18n="lbl_brand_kw">Eigenmarken Keywords (eine pro Zeile)</label><button class="btn-import" onclick="triggerImport('brandKw')" data-i18n="btn_csv_import">CSV/Excel Import</button><input type="file" class="import-input" accept=".csv,.xlsx,.xls,.tsv" data-target="brandKw"></div>
+                    <textarea id="brandKw" rows="3" placeholder="eigenmarke keyword"></textarea>
+                </div>
+
+                <!-- Competitor Keywords -->
+                <div class="section-label" data-i18n="sec_comp_kw">Wettbewerber Keywords</div>
+                <div class="field">
+                    <div class="label-row"><label data-i18n="lbl_comp_kw">Wettbewerber Keywords (eine pro Zeile)</label><button class="btn-import" onclick="triggerImport('compKw')" data-i18n="btn_csv_import">CSV/Excel Import</button><input type="file" class="import-input" accept=".csv,.xlsx,.xls,.tsv" data-target="compKw"></div>
+                    <textarea id="compKw" rows="3" placeholder="wettbewerber keyword"></textarea>
+                </div>
+                <div class="field">
+                    <label data-i18n="lbl_comp_kw_alloc">Wettbewerber Keyword Zuordnung (pro Kampagne)</label>
+                    <textarea id="compKwAlloc" rows="1" placeholder="10"></textarea>
+                </div>
+                <div class="counter" id="compKwCounter">
+                    <div class="counter-item"><span data-i18n="cnt_keywords">Keywords:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_allocated">Zugeordnet:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_remaining">Übrig:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_campaigns">Kampagnen:</span> <strong>0</strong></div>
+                </div>
+
+                <!-- Single Keywords -->
+                <div class="section-label" data-i18n="sec_single_kw">Single Keyword-Kampagnen</div>
+                <div class="field">
+                    <div class="label-row"><label><span data-i18n="lbl_single_kw">Single Keywords (eine pro Zeile, jedes = eigene Kampagne)</span> <span class="tooltip-icon" data-tip="Jedes Keyword wird als eigene Kampagne mit Exact Match angelegt — ideal für Top-Performer Keywords mit eigenem Budget." data-i18n-tip="tip_single_kw">?</span></label><button class="btn-import" onclick="triggerImport('singleKw')" data-i18n="btn_csv_import">CSV/Excel Import</button><input type="file" class="import-input" accept=".csv,.xlsx,.xls,.tsv" data-target="singleKw"></div>
+                    <textarea id="singleKw" rows="3" placeholder="langhantelstange"></textarea>
+                </div>
+
+                <!-- Product Placement -->
+                <div class="section-label" data-i18n="sec_product_targeting">Produktausrichtung</div>
+                <div class="field">
+                    <div class="label-row"><label data-i18n="lbl_brand_asins">Eigenmarken ASINs (eine pro Zeile)</label><button class="btn-import" onclick="triggerImport('brandAsins')" data-i18n="btn_csv_import">CSV/Excel Import</button><input type="file" class="import-input" accept=".csv,.xlsx,.xls,.tsv" data-target="brandAsins"></div>
+                    <textarea id="brandAsins" rows="3" placeholder="B0XXXXXX"></textarea>
+                </div>
+                <div class="field">
+                    <div class="label-row"><label data-i18n="lbl_comp_asins">Wettbewerber ASINs (eine pro Zeile)</label><button class="btn-import" onclick="triggerImport('compAsins')" data-i18n="btn_csv_import">CSV/Excel Import</button><input type="file" class="import-input" accept=".csv,.xlsx,.xls,.tsv" data-target="compAsins"></div>
+                    <textarea id="compAsins" rows="3" placeholder="B0XXXXXX"></textarea>
+                </div>
+                <div class="field">
+                    <label data-i18n="lbl_comp_asin_alloc">Wettbewerber ASIN Zuordnung (pro Kampagne)</label>
+                    <textarea id="compAsinAlloc" rows="1" placeholder="10"></textarea>
+                </div>
+                <div class="counter" id="compAsinCounter">
+                    <div class="counter-item"><span data-i18n="cnt_asins">ASINs:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_allocated">Zugeordnet:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_remaining">Übrig:</span> <strong>0</strong></div>
+                    <div class="counter-item"><span data-i18n="cnt_campaigns">Kampagnen:</span> <strong>0</strong></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="col-right">
+            <!-- STEP 3 -->
+            <div class="card">
+                <div class="card-title"><span class="step">3</span> <span data-i18n="step3_title">Kampagnen-Einstellungen</span></div>
+
+                <div class="field">
+                    <label><span data-i18n="lbl_bidding_strategy">Gebotsstrategie</span> <span class="tooltip-icon" data-tip="'Nur senken': Amazon senkt Gebote bei geringer Conversion-Wahrscheinlichkeit. 'Erhöhen und senken': Amazon passt Gebote in beide Richtungen an. 'Fest': Gebote bleiben unverändert." data-i18n-tip="tip_bidding_strategy">?</span></label>
+                    <select id="biddingStrategy">
+                        <option value="down" data-i18n="opt_bid_down">Dynamische Gebote &ndash; nur senken</option>
+                        <option value="updown" data-i18n="opt_bid_updown">Dynamische Gebote &ndash; erhöhen und senken</option>
+                        <option value="fixed" data-i18n="opt_bid_fixed">Feste Gebote</option>
+                    </select>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label data-i18n="lbl_daily_budget">Tagesbudget</label>
+                        <input type="number" id="dailyBudget" step="0.01" value="10.00">
+                    </div>
+                    <div class="field">
+                        <label data-i18n="lbl_default_bid">Standardgebot</label>
+                        <input type="number" id="overallBid" step="0.01" value="0.50">
+                    </div>
+                </div>
+                <div class="field-row">
+                    <div class="field">
+                        <label data-i18n="lbl_start_date">Kampagnen-Startdatum</label>
+                        <input type="date" id="startDate">
+                    </div>
+                    <div class="field">
+                        <label><span data-i18n="lbl_end_date">Enddatum</span> <span style="font-weight:400;color:#8b949e;" data-i18n="lbl_optional">(optional)</span></label>
+                        <input type="date" id="endDate">
+                    </div>
+                </div>
+                <div class="section-label"><span data-i18n="sec_placement">Placement-Anpassungen</span> <span style="font-weight:400;color:var(--text-secondary);" data-i18n="lbl_optional">(optional)</span> <span class="tooltip-icon" data-tip="Prozentuale Gebotserhöhung für bestimmte Platzierungen. Z.B. 50% bei Top of Search = dein Gebot wird um 50% erhöht, wenn die Anzeige ganz oben erscheint." data-i18n-tip="tip_placement">?</span></div>
+                <div class="field-row">
+                    <div class="field">
+                        <label data-i18n="lbl_tos_pct">Top of Search (%)</label>
+                        <input type="number" id="placementTos" step="1" min="0" max="900" value="" placeholder="z.B. 50" data-i18n-ph="ph_example_50">
+                    </div>
+                    <div class="field">
+                        <label data-i18n="lbl_pp_pct">Product Pages (%)</label>
+                        <input type="number" id="placementPp" step="1" min="0" max="900" value="" placeholder="z.B. 25" data-i18n-ph="ph_example_25">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label data-i18n="lbl_neg_kw_exact">Negative Keywords (Exact) auf Anzeigengruppen-Ebene</label>
+                    <textarea id="negKwExact" rows="3" placeholder="ein Keyword pro Zeile" data-i18n-ph="ph_one_kw_per_line"></textarea>
+                </div>
+                <div class="field">
+                    <label data-i18n="lbl_neg_kw_phrase">Negative Keywords (Phrase) auf Anzeigengruppen-Ebene</label>
+                    <textarea id="negKwPhrase" rows="3" placeholder="ein Keyword pro Zeile" data-i18n-ph="ph_one_kw_per_line"></textarea>
+                </div>
+                <div class="field">
+                    <label data-i18n="lbl_camp_neg_kw_exact">Kampagnen Negative Keywords (Exact)</label>
+                    <textarea id="campNegKwExact" rows="3" placeholder="ein Keyword pro Zeile" data-i18n-ph="ph_one_kw_per_line"></textarea>
+                </div>
+                <div class="field">
+                    <label data-i18n="lbl_camp_neg_kw_phrase">Kampagnen Negative Keywords (Phrase)</label>
+                    <textarea id="campNegKwPhrase" rows="3" placeholder="ein Keyword pro Zeile" data-i18n-ph="ph_one_kw_per_line"></textarea>
+                </div>
+                <div class="field">
+                    <label data-i18n="lbl_neg_prod_targeting">Negatives Produkt-Targeting (ASINs)</label>
+                    <textarea id="negProdTargeting" rows="3" placeholder="B0XXXXXX"></textarea>
+                </div>
+            </div>
+
+            <!-- STEP 4 -->
+            <div class="card">
+                <div class="card-title"><span class="step">4</span> <span data-i18n="step4_title">Kampagnen-Vorlagen</span></div>
+
+                <!-- Auto Campaign -->
+                <div class="campaign-option" id="opt-auto">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-auto">
+                        <span class="co-label" data-i18n="camp_auto">SP: Auto-Kampagne</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-auto" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-auto" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-auto" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-auto" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-auto" checked><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="cross-neg-auto" checked><label><span data-i18n="lbl_cross_negation">Cross-Negation</span> <span class="tooltip-icon" data-tip="Brand Keywords werden als Negative Phrase, generische Keywords als Negative Exact in die Auto-Kampagne eingefügt — verhindert Kannibalisierung." data-i18n-tip="tip_cross_negation">?</span></label></div>
+                    </div>
+                    <div class="auto-sub" id="autoSubOptions">
+                        <div class="auto-sub-item"><input type="checkbox" id="auto-close"><span data-i18n="auto_close">Enge Übereinstimmung</span><input type="number" id="bid-auto-close" step="0.01" value="0.50"></div>
+                        <div class="auto-sub-item"><input type="checkbox" id="auto-loose"><span data-i18n="auto_loose">Entfernte Übereinstimmung</span><input type="number" id="bid-auto-loose" step="0.01" value="0.50"></div>
+                        <div class="auto-sub-item"><input type="checkbox" id="auto-substitutes"><span data-i18n="auto_substitutes">Ersatz</span><input type="number" id="bid-auto-substitutes" step="0.01" value="0.50"></div>
+                        <div class="auto-sub-item"><input type="checkbox" id="auto-complements"><span data-i18n="auto_complements">Ergänzungen</span><input type="number" id="bid-auto-complements" step="0.01" value="0.50"></div>
+                    </div>
+                </div>
+
+                <!-- Generic Exact -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-generic-exact">
+                        <span class="co-label" data-i18n="camp_generic_exact">SP: Generic-Keyword (Exact)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-generic-exact" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-generic-exact" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-generic-exact" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-generic-exact" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-generic-exact"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Generic Broad -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-generic-broad">
+                        <span class="co-label" data-i18n="camp_generic_broad">SP: Generic-Keyword (Broad)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-generic-broad" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-generic-broad" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-generic-broad" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-generic-broad" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-generic-broad"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Brand Exact -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-brand-exact">
+                        <span class="co-label" data-i18n="camp_brand_exact">SP: Brand-Keyword (Exact)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-brand-exact" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-brand-exact" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-brand-exact" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-brand-exact" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-brand-exact"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Brand Broad -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-brand-broad">
+                        <span class="co-label" data-i18n="camp_brand_broad">SP: Brand-Keyword (Broad)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-brand-broad" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-brand-broad" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-brand-broad" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-brand-broad" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-brand-broad"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Brand Phrase -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-brand-phrase">
+                        <span class="co-label" data-i18n="camp_brand_phrase">SP: Brand-Keyword (Phrase)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-brand-phrase" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-brand-phrase" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-brand-phrase" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-brand-phrase" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-brand-phrase"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Competitor Exact -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-comp-exact">
+                        <span class="co-label" data-i18n="camp_comp_exact">SP: Competitor-Keyword (Exact)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-comp-exact" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-comp-exact" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-comp-exact" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-comp-exact" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-comp-exact"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Competitor Broad -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-comp-broad">
+                        <span class="co-label" data-i18n="camp_comp_broad">SP: Competitor-Keyword (Broad)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-comp-broad" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-comp-broad" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-comp-broad" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-comp-broad" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-comp-broad"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Product Targeting Competitor -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-pt-comp">
+                        <span class="co-label" data-i18n="camp_pt_comp">SP: Produktausrichtung (Competitor ASIN)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-pt-comp" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-pt-comp" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-pt-comp" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-pt-comp" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-pt-comp"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Product Targeting Brand -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-pt-brand">
+                        <span class="co-label" data-i18n="camp_pt_brand">SP: Produktausrichtung (Brand ASIN)</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-pt-brand" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-pt-brand" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-pt-brand" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-pt-brand" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-pt-brand"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- Single Keyword -->
+                <div class="campaign-option">
+                    <div class="campaign-option-header">
+                        <input type="checkbox" id="chk-single">
+                        <span class="co-label" data-i18n="camp_single">SP: Single Keyword-Kampagne</span>
+                    </div>
+                    <div class="campaign-option-fields">
+                        <div class="mini-field"><label data-i18n="lbl_bid">Gebot</label><input type="number" id="bid-single" step="0.01" value="0.50"></div>
+                        <div class="mini-field"><label data-i18n="lbl_daily_budget">Tagesbudget</label><input type="number" id="budget-single" step="0.01" value="10.00"></div>
+                        <div class="mini-field"><label>ToS %</label><input type="number" id="tos-single" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field"><label>PP %</label><input type="number" id="pp-single" step="1" min="0" max="900" placeholder=""></div>
+                        <div class="mini-field neg-check"><input type="checkbox" id="neg-single"><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
+                    </div>
+                </div>
+
+                <!-- SD removed - only SP campaigns supported -->
+            </div>
+
+            <!-- Error Container -->
+            <div class="error-container" id="errorContainer"></div>
+
+            <!-- Buttons -->
+            <div class="btn-row">
+                <button class="btn btn-secondary" onclick="resetAll()" data-i18n="btn_reset">Zurücksetzen</button>
+                <button class="btn btn-primary" onclick="addToAccumulator()" title="Ctrl+Enter" data-i18n="btn_add_product">Produkt hinzufügen +</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accumulator Bar - bottom -->
+    <div class="acc-products" id="accProducts"></div>
+    <div class="accumulator-bar" style="margin-top:16px;">
+        <span class="acc-count" id="accCount">0 Produkte im Bulk Sheet</span>
+        <span class="tooltip-icon" data-tip="Produkte können nachträglich bearbeitet werden: Klicke auf den Stift (✏) um ein Produkt zurück ins Formular zu laden und Änderungen vorzunehmen (z.B. SKU/ASIN korrigieren). Das Produkt wird dabei aus der Liste entfernt und kann nach der Korrektur erneut hinzugefügt werden.">?</span>
+        <button class="btn-sm" onclick="clearAccumulator()" data-i18n="btn_clear_list">Liste leeren</button>
+        <button class="btn btn-primary" onclick="downloadBulkSheet()" id="downloadBtn" disabled style="padding:8px 20px;font-size:13px;" data-i18n="btn_download">Excel für Amazon herunterladen</button>
+    </div>
+
+</div>
+
+<script>
+// --- Theme Toggle ---
+function initTheme() {
+    const saved = localStorage.getItem('ppc_theme') || 'light';
+    applyTheme(saved);
+}
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const icon = document.getElementById('themeIcon');
+    const label = document.getElementById('themeLabel');
+    if (icon) icon.textContent = theme === 'light' ? '🌙' : '☀️';
+    if (label) label.textContent = theme === 'light' ? 'Dark' : 'Light';
+}
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    const next = current === 'light' ? 'dark' : 'light';
+    localStorage.setItem('ppc_theme', next);
+    applyTheme(next);
+}
+initTheme();
+
+// --- UI Language Switcher ---
+let uiLang = localStorage.getItem('ppc_ui_lang') || 'de';
+
+const UI = {
+    de: {
+        nav_dashboard: 'Dashboard',
+        nav_help: 'Hilfe',
+        page_title: 'Kampagnen Ersteller',
+        page_sub: 'Amazon Sponsored Products Bulk Upload Sheet Generator',
+        step1_title: 'Beworbene Produkte',
+        step2_title: 'Keywords & Targeting',
+        step3_title: 'Kampagnen-Einstellungen',
+        step4_title: 'Kampagnen-Vorlagen',
+        toggle_vendor: 'Vendor: ASIN Listen',
+        toggle_seller: 'Seller: SKU Listen',
+        lbl_marketplace: 'Marketplace',
+        lbl_product_name: 'Produktname',
+        hint_product_name: '(wird für die Kampagnenbenennung verwendet)',
+        lbl_asins: 'ASINs (eine pro Zeile)',
+        lbl_skus: 'SKUs (eine pro Zeile)',
+        lbl_portfolio_id: 'Portfolio-ID',
+        lbl_optional: '(optional)',
+        sec_generic_kw: 'Generische Keywords',
+        lbl_generic_kw: 'Keywords (eine pro Zeile)',
+        lbl_kw_allocation: 'Keyword Allocation (pro Kampagne)',
+        sec_brand_kw: 'Eigenmarken Keywords',
+        lbl_brand_kw: 'Eigenmarken Keywords (eine pro Zeile)',
+        sec_comp_kw: 'Wettbewerber Keywords',
+        lbl_comp_kw: 'Wettbewerber Keywords (eine pro Zeile)',
+        lbl_comp_kw_alloc: 'Wettbewerber Keyword Zuordnung (pro Kampagne)',
+        sec_single_kw: 'Single Keyword-Kampagnen',
+        lbl_single_kw: 'Single Keywords (eine pro Zeile, jedes = eigene Kampagne)',
+        sec_product_targeting: 'Produktausrichtung',
+        lbl_brand_asins: 'Eigenmarken ASINs (eine pro Zeile)',
+        lbl_comp_asins: 'Wettbewerber ASINs (eine pro Zeile)',
+        lbl_comp_asin_alloc: 'Wettbewerber ASIN Zuordnung (pro Kampagne)',
+        lbl_bidding_strategy: 'Gebotsstrategie',
+        opt_bid_down: 'Dynamische Gebote \u2013 nur senken',
+        opt_bid_updown: 'Dynamische Gebote \u2013 erh\u00f6hen und senken',
+        opt_bid_fixed: 'Feste Gebote',
+        lbl_daily_budget: 'Tagesbudget',
+        lbl_default_bid: 'Standardgebot',
+        lbl_bid: 'Gebot',
+        lbl_start_date: 'Kampagnen-Startdatum',
+        lbl_end_date: 'Enddatum',
+        sec_placement: 'Placement-Anpassungen',
+        lbl_tos_pct: 'Top of Search (%)',
+        lbl_pp_pct: 'Product Pages (%)',
+        lbl_neg_kw_exact: 'Negative Keywords (Exact) auf Anzeigengruppen-Ebene',
+        lbl_neg_kw_phrase: 'Negative Keywords (Phrase) auf Anzeigengruppen-Ebene',
+        lbl_camp_neg_kw_exact: 'Kampagnen Negative Keywords (Exact)',
+        lbl_camp_neg_kw_phrase: 'Kampagnen Negative Keywords (Phrase)',
+        lbl_neg_prod_targeting: 'Negatives Produkt-Targeting (ASINs)',
+        lbl_neg_kw_short: 'Negative KW',
+        lbl_cross_negation: 'Cross-Negation',
+        camp_auto: 'SP: Auto-Kampagne',
+        camp_generic_exact: 'SP: Generic-Keyword (Exact)',
+        camp_generic_broad: 'SP: Generic-Keyword (Broad)',
+        camp_brand_exact: 'SP: Brand-Keyword (Exact)',
+        camp_brand_broad: 'SP: Brand-Keyword (Broad)',
+        camp_brand_phrase: 'SP: Brand-Keyword (Phrase)',
+        camp_comp_exact: 'SP: Competitor-Keyword (Exact)',
+        camp_comp_broad: 'SP: Competitor-Keyword (Broad)',
+        camp_pt_comp: 'SP: Produktausrichtung (Competitor ASIN)',
+        camp_pt_brand: 'SP: Produktausrichtung (Brand ASIN)',
+        camp_single: 'SP: Single Keyword-Kampagne',
+        sec_sd: 'Sponsored Display',
+        camp_sd_pt_comp: 'SD: Produktausrichtung (Competitor ASIN)',
+        camp_sd_pt_brand: 'SD: Produktausrichtung (Brand ASIN)',
+        auto_close: 'Enge \u00dcbereinstimmung',
+        auto_loose: 'Entfernte \u00dcbereinstimmung',
+        auto_substitutes: 'Ersatz',
+        auto_complements: 'Erg\u00e4nzungen',
+        cnt_keywords: 'Keywords:',
+        cnt_asins: 'ASINs:',
+        cnt_allocated: 'Zugeordnet:',
+        cnt_remaining: '\u00dcbrig:',
+        cnt_campaigns: 'Kampagnen:',
+        btn_csv_import: 'CSV/Excel Import',
+        btn_reset: 'Zur\u00fccksetzen',
+        btn_add_product: 'Produkt hinzuf\u00fcgen +',
+        btn_clear_list: 'Liste leeren',
+        btn_download: 'Excel f\u00fcr Amazon herunterladen',
+        btn_logout: 'Logout',
+        acc_products_in_bulk: 'Produkte im Bulk Sheet',
+        acc_product_singular: 'Produkt',
+        acc_campaigns: 'Kampagnen',
+        acc_added: 'hinzugef\u00fcgt!',
+        acc_clear_confirm_pre: 'Bulk Sheet mit ',
+        acc_clear_confirm_post: ' wirklich leeren?',
+        acc_no_products: 'Keine Produkte im Bulk Sheet. F\u00fcge zuerst Produkte hinzu.',
+        acc_success: 'Bulk Sheet erfolgreich erstellt',
+        acc_rows: 'Zeilen',
+        // Tooltips
+        tip_marketplace: 'Bestimmt die Sprache aller Spalten, Entit\u00e4ten und Match Types im Bulk Sheet.',
+        tip_kw_allocation: 'Anzahl Keywords pro Kampagne. Wenn du z.B. 50 Keywords und Allocation 10 hast, werden 5 Kampagnen mit je 10 Keywords erstellt.',
+        tip_single_kw: 'Jedes Keyword wird als eigene Kampagne mit Exact Match angelegt \u2014 ideal f\u00fcr Top-Performer Keywords mit eigenem Budget.',
+        tip_bidding_strategy: "'Nur senken': Amazon senkt Gebote bei geringer Conversion-Wahrscheinlichkeit. 'Erh\u00f6hen und senken': Amazon passt Gebote in beide Richtungen an. 'Fest': Gebote bleiben unver\u00e4ndert.",
+        tip_placement: 'Prozentuale Gebotserh\u00f6hung f\u00fcr bestimmte Platzierungen. Z.B. 50% bei Top of Search = dein Gebot wird um 50% erh\u00f6ht, wenn die Anzeige ganz oben erscheint.',
+        tip_cross_negation: 'Brand Keywords werden als Negative Phrase, generische Keywords als Negative Exact in die Auto-Kampagne eingef\u00fcgt \u2014 verhindert Kannibalisierung.',
+        // Placeholders
+        ph_product_name: 'z.B. Langhantel',
+        ph_portfolio_id: 'z.B. 123456789',
+        ph_example_50: 'z.B. 50',
+        ph_example_25: 'z.B. 25',
+        ph_one_kw_per_line: 'ein Keyword pro Zeile',
+        // Marketplace options
+        mp_de: 'Deutschland (DE)',
+        mp_en: 'USA / UK (EN)',
+        mp_fr: 'Frankreich (FR)',
+        mp_it: 'Italien (IT)',
+        mp_es: 'Spanien (ES)',
+        // Error messages
+        err_alloc_generic: 'Generische Keyword-Zuordnung ({0}) \u00fcbersteigt die Anzahl verf\u00fcgbarer Keywords ({1}).',
+        err_alloc_comp_kw: 'Wettbewerber Keyword-Zuordnung ({0}) \u00fcbersteigt die Anzahl verf\u00fcgbarer Keywords ({1}).',
+        err_alloc_comp_asin: 'Wettbewerber ASIN-Zuordnung ({0}) \u00fcbersteigt die Anzahl verf\u00fcgbarer ASINs ({1}).',
+        err_has_items_no_name: 'Das Produkt hat {0} aber keinen Namen.',
+        err_has_name_no_items: 'Produkt "{0}" hat keine {1}.',
+        err_no_input: 'Bitte Produktname und ASINs/SKUs eingeben.',
+        err_invalid_asin: 'Ung\u00fcltige ASIN "{0}" (muss 10 Zeichen lang sein und mit B0 beginnen).',
+        err_empty_sku: 'Leere SKU gefunden.',
+        err_invalid_brand_asin: 'Ung\u00fcltige Eigenmarken-ASIN: "{0}"',
+        err_invalid_comp_asin: 'Ung\u00fcltige Wettbewerber-ASIN: "{0}"',
+        err_invalid_neg_asin: 'Ung\u00fcltige Negative Targeting-ASIN: "{0}"',
+        err_no_campaigns: 'Keine Kampagnen ausgew\u00e4hlt oder keine Keywords/ASINs eingegeben.',
+        err_no_export_data: 'Keine Daten zum Exportieren.',
+        warn_dupes_removed: '{0} doppelte {1} entfernt.'
+    },
+    en: {
+        nav_dashboard: 'Dashboard',
+        nav_help: 'Help',
+        page_title: 'Campaign Creator',
+        page_sub: 'Amazon Sponsored Products Bulk Upload Sheet Generator',
+        step1_title: 'Products to Advertise',
+        step2_title: 'Keywords & Targeting',
+        step3_title: 'Campaign Settings',
+        step4_title: 'Campaign Templates',
+        toggle_vendor: 'Vendor: ASIN Lists',
+        toggle_seller: 'Seller: SKU Lists',
+        lbl_marketplace: 'Marketplace',
+        lbl_product_name: 'Product Name',
+        hint_product_name: '(used for campaign naming)',
+        lbl_asins: 'ASINs (one per line)',
+        lbl_skus: 'SKUs (one per line)',
+        lbl_portfolio_id: 'Portfolio ID',
+        lbl_optional: '(optional)',
+        sec_generic_kw: 'Generic Keywords',
+        lbl_generic_kw: 'Keywords (one per line)',
+        lbl_kw_allocation: 'Keyword Allocation (per campaign)',
+        sec_brand_kw: 'Brand Keywords',
+        lbl_brand_kw: 'Brand Keywords (one per line)',
+        sec_comp_kw: 'Competitor Keywords',
+        lbl_comp_kw: 'Competitor Keywords (one per line)',
+        lbl_comp_kw_alloc: 'Competitor Keyword Allocation (per campaign)',
+        sec_single_kw: 'Single Keyword Campaigns',
+        lbl_single_kw: 'Single Keywords (one per line, each = own campaign)',
+        sec_product_targeting: 'Product Targeting',
+        lbl_brand_asins: 'Brand ASINs (one per line)',
+        lbl_comp_asins: 'Competitor ASINs (one per line)',
+        lbl_comp_asin_alloc: 'Competitor ASIN Allocation (per campaign)',
+        lbl_bidding_strategy: 'Bidding Strategy',
+        opt_bid_down: 'Dynamic bids \u2013 down only',
+        opt_bid_updown: 'Dynamic bids \u2013 up and down',
+        opt_bid_fixed: 'Fixed bids',
+        lbl_daily_budget: 'Daily Budget',
+        lbl_default_bid: 'Default Bid',
+        lbl_bid: 'Bid',
+        lbl_start_date: 'Campaign Start Date',
+        lbl_end_date: 'End Date',
+        sec_placement: 'Placement Adjustments',
+        lbl_tos_pct: 'Top of Search (%)',
+        lbl_pp_pct: 'Product Pages (%)',
+        lbl_neg_kw_exact: 'Negative Keywords (Exact) — Ad Group Level',
+        lbl_neg_kw_phrase: 'Negative Keywords (Phrase) — Ad Group Level',
+        lbl_camp_neg_kw_exact: 'Campaign Negative Keywords (Exact)',
+        lbl_camp_neg_kw_phrase: 'Campaign Negative Keywords (Phrase)',
+        lbl_neg_prod_targeting: 'Negative Product Targeting (ASINs)',
+        lbl_neg_kw_short: 'Negative KW',
+        lbl_cross_negation: 'Cross-Negation',
+        camp_auto: 'SP: Auto Campaign',
+        camp_generic_exact: 'SP: Generic Keyword (Exact)',
+        camp_generic_broad: 'SP: Generic Keyword (Broad)',
+        camp_brand_exact: 'SP: Brand Keyword (Exact)',
+        camp_brand_broad: 'SP: Brand Keyword (Broad)',
+        camp_brand_phrase: 'SP: Brand Keyword (Phrase)',
+        camp_comp_exact: 'SP: Competitor Keyword (Exact)',
+        camp_comp_broad: 'SP: Competitor Keyword (Broad)',
+        camp_pt_comp: 'SP: Product Targeting (Competitor ASIN)',
+        camp_pt_brand: 'SP: Product Targeting (Brand ASIN)',
+        camp_single: 'SP: Single Keyword Campaign',
+        sec_sd: 'Sponsored Display',
+        camp_sd_pt_comp: 'SD: Product Targeting (Competitor ASIN)',
+        camp_sd_pt_brand: 'SD: Product Targeting (Brand ASIN)',
+        auto_close: 'Close Match',
+        auto_loose: 'Loose Match',
+        auto_substitutes: 'Substitutes',
+        auto_complements: 'Complements',
+        cnt_keywords: 'Keywords:',
+        cnt_asins: 'ASINs:',
+        cnt_allocated: 'Allocated:',
+        cnt_remaining: 'Remaining:',
+        cnt_campaigns: 'Campaigns:',
+        btn_csv_import: 'CSV/Excel Import',
+        btn_reset: 'Reset',
+        btn_add_product: 'Add Product +',
+        btn_clear_list: 'Clear List',
+        btn_download: 'Download Excel for Amazon',
+        btn_logout: 'Logout',
+        acc_products_in_bulk: 'Products in Bulk Sheet',
+        acc_product_singular: 'Product',
+        acc_campaigns: 'Campaigns',
+        acc_added: 'added!',
+        acc_clear_confirm_pre: 'Really clear Bulk Sheet with ',
+        acc_clear_confirm_post: '?',
+        acc_no_products: 'No products in Bulk Sheet. Add products first.',
+        acc_success: 'Bulk Sheet created successfully',
+        acc_rows: 'rows',
+        // Tooltips
+        tip_marketplace: 'Determines the language of all columns, entities, and match types in the Bulk Sheet.',
+        tip_kw_allocation: 'Number of keywords per campaign. E.g. 50 keywords with allocation 10 creates 5 campaigns with 10 keywords each.',
+        tip_single_kw: 'Each keyword creates its own Exact Match campaign \u2014 ideal for top-performer keywords with dedicated budget.',
+        tip_bidding_strategy: "'Down only': Amazon lowers bids when conversion is unlikely. 'Up and down': Amazon adjusts bids in both directions. 'Fixed': Bids remain unchanged.",
+        tip_placement: 'Percentage bid increase for specific placements. E.g. 50% for Top of Search = your bid is increased by 50% when the ad appears at the top.',
+        tip_cross_negation: 'Brand keywords are added as Negative Phrase, generic keywords as Negative Exact in the Auto campaign \u2014 prevents cannibalization.',
+        // Placeholders
+        ph_product_name: 'e.g. Barbell',
+        ph_portfolio_id: 'e.g. 123456789',
+        ph_example_50: 'e.g. 50',
+        ph_example_25: 'e.g. 25',
+        ph_one_kw_per_line: 'one keyword per line',
+        // Marketplace options
+        mp_de: 'Germany (DE)',
+        mp_en: 'USA / UK (EN)',
+        mp_fr: 'France (FR)',
+        mp_it: 'Italy (IT)',
+        mp_es: 'Spain (ES)',
+        // Error messages
+        err_alloc_generic: 'Generic keyword allocation ({0}) exceeds available keywords ({1}).',
+        err_alloc_comp_kw: 'Competitor keyword allocation ({0}) exceeds available keywords ({1}).',
+        err_alloc_comp_asin: 'Competitor ASIN allocation ({0}) exceeds available ASINs ({1}).',
+        err_has_items_no_name: 'Product has {0} but no name.',
+        err_has_name_no_items: 'Product "{0}" has no {1}.',
+        err_no_input: 'Please enter a product name and ASINs/SKUs.',
+        err_invalid_asin: 'Invalid ASIN "{0}" (must be 10 characters and start with B0).',
+        err_empty_sku: 'Empty SKU found.',
+        err_invalid_brand_asin: 'Invalid Brand ASIN: "{0}"',
+        err_invalid_comp_asin: 'Invalid Competitor ASIN: "{0}"',
+        err_invalid_neg_asin: 'Invalid Negative Targeting ASIN: "{0}"',
+        err_no_campaigns: 'No campaigns selected or no keywords/ASINs entered.',
+        err_no_export_data: 'No data to export.',
+        warn_dupes_removed: '{0} duplicate {1} removed.'
+    }
+};
+
+function applyUILang(newLang) {
+    uiLang = newLang || uiLang;
+    localStorage.setItem('ppc_ui_lang', uiLang);
+    const dict = UI[uiLang] || UI['de'];
+
+    // Update all data-i18n text content
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key] !== undefined) {
+            el.textContent = dict[key];
+        }
+    });
+
+    // Update all data-i18n-tip tooltip attributes
+    document.querySelectorAll('[data-i18n-tip]').forEach(el => {
+        const key = el.getAttribute('data-i18n-tip');
+        if (dict[key] !== undefined) {
+            el.setAttribute('data-tip', dict[key]);
+        }
+    });
+
+    // Update all data-i18n-ph placeholder attributes
+    document.querySelectorAll('[data-i18n-ph]').forEach(el => {
+        const key = el.getAttribute('data-i18n-ph');
+        if (dict[key] !== undefined) {
+            el.placeholder = dict[key];
+        }
+    });
+
+    // Update marketplace select options
+    const mpSel = document.getElementById('marketplaceSelect');
+    if (mpSel) {
+        const mpKeys = ['mp_de', 'mp_en', 'mp_fr', 'mp_it', 'mp_es'];
+        const opts = mpSel.querySelectorAll('option');
+        opts.forEach((opt, i) => {
+            if (dict[mpKeys[i]]) opt.textContent = dict[mpKeys[i]];
+        });
+    }
+
+    // Update toggle button highlights
+    document.getElementById('langOptDE').classList.toggle('active', uiLang === 'de');
+    document.getElementById('langOptEN').classList.toggle('active', uiLang === 'en');
+
+    // Sync the bulk sheet output language with UI lang when DE or EN
+    if (uiLang === 'en') {
+        lang = 'en';
+        document.getElementById('marketplaceSelect').value = 'en';
+    }
+
+    // Update the product list label based on mode
+    updateProductListLabel();
+
+    // Update accumulator UI text
+    updateAccumulatorUI();
+
+    // Update page title
+    document.title = (uiLang === 'en' ? 'Campaign Creator' : 'Kampagnen Ersteller') + ' - AdsMasters PPC Tools';
+}
+
+function toggleUILang() {
+    const newLang = uiLang === 'de' ? 'en' : 'de';
+    applyUILang(newLang);
+}
+
+function updateProductListLabel() {
+    const lbl = document.getElementById('productListLabel');
+    const dict = UI[uiLang] || UI['de'];
+    if (lbl) {
+        if (mode === 'vendor') {
+            lbl.textContent = dict.lbl_asins;
+        } else {
+            lbl.textContent = dict.lbl_skus;
+        }
+    }
+}
+
+// Initialize UI language on load
+(function() {
+    // Defer to after DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() { applyUILang(uiLang); });
+    } else {
+        applyUILang(uiLang);
+    }
+})();
+
+// --- Keyboard Shortcuts ---
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        addToAccumulator();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        savePreset();
+    }
+});
+
+// --- Drag & Drop on Textareas ---
+document.addEventListener('dragover', function(e) {
+    const ta = e.target.closest('textarea');
+    if (!ta) return;
+    e.preventDefault();
+    ta.classList.add('drag-over');
+});
+document.addEventListener('dragleave', function(e) {
+    const ta = e.target.closest('textarea');
+    if (!ta) return;
+    ta.classList.remove('drag-over');
+});
+document.addEventListener('drop', function(e) {
+    const ta = e.target.closest('textarea');
+    if (!ta) return;
+    e.preventDefault();
+    ta.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    if (file.name.match(/\.(xlsx|xls)$/i)) {
+        reader.onload = function(evt) {
+            const data = new Uint8Array(evt.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            const values = rows.flat().map(v => String(v).trim()).filter(Boolean);
+            appendToTextarea(ta, values);
+        };
+        reader.readAsArrayBuffer(file);
+    } else if (file.name.match(/\.(csv|tsv|txt)$/i)) {
+        reader.onload = function(evt) {
+            const text = evt.target.result;
+            const sep = text.includes('\t') ? '\t' : ',';
+            const values = text.split(/\r?\n/).flatMap(line => line.split(sep)).map(v => v.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+            appendToTextarea(ta, values);
+        };
+        reader.readAsText(file);
+    }
+});
+
+// --- CSV/Excel Import ---
+function triggerImport(targetId) {
+    const input = document.querySelector('.import-input[data-target="' + targetId + '"]');
+    input.value = '';
+    input.click();
+}
+
+document.addEventListener('change', function(e) {
+    if (!e.target.classList.contains('import-input')) return;
+    const file = e.target.files[0];
+    if (!file) return;
+    const targetId = e.target.dataset.target;
+    const textarea = document.getElementById(targetId);
+
+    const reader = new FileReader();
+    if (file.name.match(/\.(xlsx|xls)$/i)) {
+        reader.onload = function(evt) {
+            const data = new Uint8Array(evt.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+            const values = rows.flat().map(v => String(v).trim()).filter(Boolean);
+            appendToTextarea(textarea, values);
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        reader.onload = function(evt) {
+            const text = evt.target.result;
+            const sep = text.includes('\t') ? '\t' : ',';
+            const values = text.split(/\r?\n/).flatMap(line => line.split(sep)).map(v => v.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+            appendToTextarea(textarea, values);
+        };
+        reader.readAsText(file);
+    }
+});
+
+// --- Product Template Download (kept for reference but button removed) ---
+
+function appendToTextarea(textarea, values) {
+    const existing = textarea.value.trim();
+    const newVal = existing ? existing + '\n' + values.join('\n') : values.join('\n');
+    textarea.value = newVal;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// --- Presets (localStorage) ---
+const PRESET_KEY = 'ppc_presets';
+
+function getPresets() {
+    try { return JSON.parse(localStorage.getItem(PRESET_KEY)) || {}; } catch { return {}; }
+}
+
+function refreshPresetDropdown() {
+    const sel = document.getElementById('presetSelect');
+    const presets = getPresets();
+    sel.innerHTML = '<option value="">— Vorlage wählen —</option>';
+    Object.keys(presets).sort().forEach(name => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        sel.appendChild(opt);
+    });
+}
+
+function gatherFormState() {
+    const state = { mode, lang };
+    // Product (single product)
+    state.products = [{
+        name: document.getElementById('productName').value,
+        list: document.getElementById('productList').value,
+        portfolioId: document.getElementById('portfolioId').value
+    }];
+    // Text fields
+    const textIds = ['genericKw', 'genericAlloc', 'brandKw', 'compKw', 'compKwAlloc', 'singleKw', 'brandAsins', 'compAsins', 'compAsinAlloc', 'negKwExact', 'negKwPhrase', 'campNegKwExact', 'campNegKwPhrase', 'negProdTargeting'];
+    state.texts = {};
+    textIds.forEach(id => state.texts[id] = document.getElementById(id).value);
+    // Settings
+    state.biddingStrategy = document.getElementById('biddingStrategy').value;
+    state.dailyBudget = document.getElementById('dailyBudget').value;
+    state.overallBid = document.getElementById('overallBid').value;
+    state.placementTos = document.getElementById('placementTos').value;
+    state.placementPp = document.getElementById('placementPp').value;
+    // Campaign options
+    const checkIds = ['chk-auto', 'chk-generic-exact', 'chk-generic-broad', 'chk-brand-exact', 'chk-brand-broad', 'chk-brand-phrase', 'chk-comp-exact', 'chk-comp-broad', 'chk-pt-comp', 'chk-pt-brand', 'chk-single', 'neg-auto', 'neg-generic-exact', 'neg-generic-broad', 'neg-brand-exact', 'neg-brand-broad', 'neg-brand-phrase', 'neg-comp-exact', 'neg-comp-broad', 'neg-pt-comp', 'neg-pt-brand', 'neg-single', 'auto-close', 'auto-loose', 'auto-substitutes', 'auto-complements'];
+    state.checks = {};
+    checkIds.forEach(id => state.checks[id] = document.getElementById(id).checked);
+    // Bids & budgets
+    const allBidBudget = [...budgetIds, ...bidIds, ...autoBidIds];
+    state.bidsBudgets = {};
+    // Note: budgetIds/bidIds/autoBidIds are defined later, so we read them by selector
+    document.querySelectorAll('.campaign-option input[type="number"]').forEach(el => {
+        if (el.id) state.bidsBudgets[el.id] = el.value;
+    });
+    return state;
+}
+
+function applyFormState(state) {
+    // Mode & Lang
+    setMode(state.mode || 'vendor');
+    setMarketplace(state.lang || 'de');
+    // Product (single - load first product from preset)
+    const p = (state.products || [{}])[0] || {};
+    document.getElementById('productName').value = p.name || '';
+    document.getElementById('productList').value = p.list || '';
+    document.getElementById('portfolioId').value = p.portfolioId || '';
+    // Text fields
+    if (state.texts) {
+        Object.entries(state.texts).forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        });
+    }
+    // Settings
+    if (state.biddingStrategy) document.getElementById('biddingStrategy').value = state.biddingStrategy;
+    if (state.dailyBudget) document.getElementById('dailyBudget').value = state.dailyBudget;
+    if (state.overallBid) document.getElementById('overallBid').value = state.overallBid;
+    document.getElementById('placementTos').value = state.placementTos || '';
+    document.getElementById('placementPp').value = state.placementPp || '';
+    // Checkboxes
+    if (state.checks) {
+        Object.entries(state.checks).forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el) el.checked = val;
+        });
+    }
+    // Bids & budgets
+    if (state.bidsBudgets) {
+        Object.entries(state.bidsBudgets).forEach(([id, val]) => {
+            const el = document.getElementById(id);
+            if (el) el.value = val;
+        });
+    }
+    // Update counters
+    updateCounter('genericKw', 'genericAlloc', 'genericCounter');
+    updateCounter('compKw', 'compKwAlloc', 'compKwCounter');
+    updateCounter('compAsins', 'compAsinAlloc', 'compAsinCounter');
+}
+
+function savePreset() {
+    const name = prompt('Vorlagen-Name eingeben:');
+    if (!name || !name.trim()) return;
+    const presets = getPresets();
+    presets[name.trim()] = gatherFormState();
+    localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+    refreshPresetDropdown();
+    document.getElementById('presetSelect').value = name.trim();
+}
+
+function loadPreset() {
+    const name = document.getElementById('presetSelect').value;
+    if (!name) return;
+    const presets = getPresets();
+    if (!presets[name]) return;
+    applyFormState(presets[name]);
+}
+
+function deletePreset() {
+    const name = document.getElementById('presetSelect').value;
+    if (!name) return;
+    if (!confirm('Vorlage "' + name + '" wirklich löschen?')) return;
+    const presets = getPresets();
+    delete presets[name];
+    localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
+    refreshPresetDropdown();
+}
+
+function exportPresets() {
+    const presets = getPresets();
+    if (Object.keys(presets).length === 0) return;
+    const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'ppc-presets.json';
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    refreshPresetDropdown();
+
+    document.getElementById('presetImportFile').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                const imported = JSON.parse(evt.target.result);
+                const existing = getPresets();
+                const merged = { ...existing, ...imported };
+                localStorage.setItem(PRESET_KEY, JSON.stringify(merged));
+                refreshPresetDropdown();
+                const count = Object.keys(imported).length;
+                showSuccess(count + ' Vorlage(n) importiert.');
+            } catch { /* invalid JSON */ }
+        };
+        reader.readAsText(file);
+        e.target.value = '';
+    });
+});
+
+// --- State ---
+let mode = 'seller'; // vendor or seller
+let lang = 'de';
+
+function setMode(m) {
+    mode = m;
+    document.querySelectorAll('.toggle-btn').forEach((b, i) => {
+        b.classList.toggle('active', (i === 0 && m === 'vendor') || (i === 1 && m === 'seller'));
+    });
+    updateProductListLabel();
+    const ta = document.getElementById('productList');
+    if (ta) ta.placeholder = m === 'vendor' ? 'B0XXXXXX\nB0YYYYYY' : 'SKU-001\nSKU-002';
+}
+
+function setMarketplace(m) {
+    lang = m;
+    document.getElementById('marketplaceSelect').value = m;
+}
+
+// Marketplace translations for Amazon Bulk Sheet
+const T = {
+    de: {
+        product: 'Sponsored Products',
+        campaign: 'Campaign', adGroup: 'Ad Group', productAd: 'Product Ad',
+        keyword: 'Keyword', negKeyword: 'Negative keyword', negCampKeyword: 'Campaign negative keyword',
+        prodTargeting: 'Product Targeting', negProdTargeting: 'Negative product targeting',
+        biddingAdj: 'Bidding adjustment',
+        exact: 'Exact', broad: 'Broad', phrase: 'Phrase',
+        negExact: 'negativeExact', negPhrase: 'negativePhrase',
+        create: 'Create', auto: 'Auto', manual: 'Manual',
+        enabled: 'Enabled',
+        bidDown: 'Dynamic bids - down only',
+        bidUpDown: 'Dynamic bids - up and down',
+        bidFixed: 'Fixed bids',
+        placeTos: 'Top of Search on-Amazon', placePp: 'Product Pages on-Amazon',
+        headers: ['Product', 'Entity', 'Operation', 'Campaign ID', 'Ad Group ID', 'Portfolio ID', 'Ad ID', 'Keyword ID', 'Product Targeting ID', 'Campaign Name', 'Ad Group Name', 'Start Date', 'End Date', 'Targeting Type', 'State', 'Daily Budget', 'SKU', 'ASIN', 'Ad Group Default Bid', 'Bid', 'Keyword Text', 'Match Type', 'Bidding Strategy', 'Placement', 'Percentage', 'Product Targeting Expression'],
+        sheetSP: 'Sponsored Products-Kampagnen', sheetSD: 'Sponsored Display-Kampagnen'
+    },
+    en: {
+        product: 'Sponsored Products',
+        campaign: 'Campaign', adGroup: 'Ad Group', productAd: 'Product Ad',
+        keyword: 'Keyword', negKeyword: 'Negative keyword', negCampKeyword: 'Campaign negative keyword',
+        prodTargeting: 'Product Targeting', negProdTargeting: 'Negative product targeting',
+        biddingAdj: 'Bidding adjustment',
+        exact: 'Exact', broad: 'Broad', phrase: 'Phrase',
+        negExact: 'negativeExact', negPhrase: 'negativePhrase',
+        create: 'Create', auto: 'Auto', manual: 'Manual',
+        enabled: 'Enabled',
+        bidDown: 'Dynamic bids - down only',
+        bidUpDown: 'Dynamic bids - up and down',
+        bidFixed: 'Fixed bids',
+        placeTos: 'Top of Search on-Amazon', placePp: 'Product Pages on-Amazon',
+        headers: ['Product', 'Entity', 'Operation', 'Campaign ID', 'Ad Group ID', 'Portfolio ID', 'Ad ID', 'Keyword ID', 'Product Targeting ID', 'Campaign Name', 'Ad Group Name', 'Start Date', 'End Date', 'Targeting Type', 'State', 'Daily Budget', 'SKU', 'ASIN', 'Ad Group Default Bid', 'Bid', 'Keyword Text', 'Match Type', 'Bidding Strategy', 'Placement', 'Percentage', 'Product Targeting Expression'],
+        sheetSP: 'Sponsored Products Campaigns', sheetSD: 'Sponsored Display Campaigns'
+    },
+    fr: {
+        product: 'Sponsored Products',
+        campaign: 'Campaign', adGroup: 'Ad Group', productAd: 'Product Ad',
+        keyword: 'Keyword', negKeyword: 'Negative keyword', negCampKeyword: 'Campaign negative keyword',
+        prodTargeting: 'Product Targeting', negProdTargeting: 'Negative product targeting',
+        biddingAdj: 'Bidding adjustment',
+        exact: 'Exact', broad: 'Broad', phrase: 'Phrase',
+        negExact: 'negativeExact', negPhrase: 'negativePhrase',
+        create: 'Create', auto: 'Auto', manual: 'Manual',
+        enabled: 'Enabled',
+        bidDown: 'Dynamic bids - down only',
+        bidUpDown: 'Dynamic bids - up and down',
+        bidFixed: 'Fixed bids',
+        placeTos: 'Top of Search on-Amazon', placePp: 'Product Pages on-Amazon',
+        headers: ['Product', 'Entity', 'Operation', 'Campaign ID', 'Ad Group ID', 'Portfolio ID', 'Ad ID', 'Keyword ID', 'Product Targeting ID', 'Campaign Name', 'Ad Group Name', 'Start Date', 'End Date', 'Targeting Type', 'State', 'Daily Budget', 'SKU', 'ASIN', 'Ad Group Default Bid', 'Bid', 'Keyword Text', 'Match Type', 'Bidding Strategy', 'Placement', 'Percentage', 'Product Targeting Expression'],
+        sheetSP: 'Campagnes Sponsored Products', sheetSD: 'Campagnes Sponsored Display'
+    },
+    it: {
+        product: 'Sponsored Products',
+        campaign: 'Campaign', adGroup: 'Ad Group', productAd: 'Product Ad',
+        keyword: 'Keyword', negKeyword: 'Negative keyword', negCampKeyword: 'Campaign negative keyword',
+        prodTargeting: 'Product Targeting', negProdTargeting: 'Negative product targeting',
+        biddingAdj: 'Bidding adjustment',
+        exact: 'Exact', broad: 'Broad', phrase: 'Phrase',
+        negExact: 'negativeExact', negPhrase: 'negativePhrase',
+        create: 'Create', auto: 'Auto', manual: 'Manual',
+        enabled: 'Enabled',
+        bidDown: 'Dynamic bids - down only',
+        bidUpDown: 'Dynamic bids - up and down',
+        bidFixed: 'Fixed bids',
+        placeTos: 'Top of Search on-Amazon', placePp: 'Product Pages on-Amazon',
+        headers: ['Product', 'Entity', 'Operation', 'Campaign ID', 'Ad Group ID', 'Portfolio ID', 'Ad ID', 'Keyword ID', 'Product Targeting ID', 'Campaign Name', 'Ad Group Name', 'Start Date', 'End Date', 'Targeting Type', 'State', 'Daily Budget', 'SKU', 'ASIN', 'Ad Group Default Bid', 'Bid', 'Keyword Text', 'Match Type', 'Bidding Strategy', 'Placement', 'Percentage', 'Product Targeting Expression'],
+        sheetSP: 'Campagne Sponsored Products', sheetSD: 'Campagne Sponsored Display'
+    },
+    es: {
+        product: 'Sponsored Products',
+        campaign: 'Campaign', adGroup: 'Ad Group', productAd: 'Product Ad',
+        keyword: 'Keyword', negKeyword: 'Negative keyword', negCampKeyword: 'Campaign negative keyword',
+        prodTargeting: 'Product Targeting', negProdTargeting: 'Negative product targeting',
+        biddingAdj: 'Bidding adjustment',
+        exact: 'Exact', broad: 'Broad', phrase: 'Phrase',
+        negExact: 'negativeExact', negPhrase: 'negativePhrase',
+        create: 'Create', auto: 'Auto', manual: 'Manual',
+        enabled: 'Enabled',
+        bidDown: 'Dynamic bids - down only',
+        bidUpDown: 'Dynamic bids - up and down',
+        bidFixed: 'Fixed bids',
+        placeTos: 'Top of Search on-Amazon', placePp: 'Product Pages on-Amazon',
+        headers: ['Product', 'Entity', 'Operation', 'Campaign ID', 'Ad Group ID', 'Portfolio ID', 'Ad ID', 'Keyword ID', 'Product Targeting ID', 'Campaign Name', 'Ad Group Name', 'Start Date', 'End Date', 'Targeting Type', 'State', 'Daily Budget', 'SKU', 'ASIN', 'Ad Group Default Bid', 'Bid', 'Keyword Text', 'Match Type', 'Bidding Strategy', 'Placement', 'Percentage', 'Product Targeting Expression'],
+        sheetSP: 'Campa\u00f1as de Sponsored Products', sheetSD: 'Campa\u00f1as de Sponsored Display'
+    }
+};
+
+// --- Accumulator ---
+window.accumulatedRows = [];
+window.accumulatedProducts = [];
+
+function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+// --- Set default start date ---
+(function() {
+    const d = new Date();
+    document.getElementById('startDate').value = d.toISOString().slice(0, 10);
+})();
+
+// --- Counters ---
+function getLines(id) {
+    return document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+}
+
+function unique(arr) {
+    return [...new Set(arr.map(s => s.toLowerCase()))];
+}
+
+function updateCounter(kwId, allocId, counterId) {
+    const kws = unique(getLines(kwId));
+    const allocLines = getLines(allocId);
+    const allocNum = allocLines.length > 0 ? parseInt(allocLines[0], 10) : 0;
+    const total = kws.length;
+    let allocated = 0, campaigns = 0;
+    if (allocNum > 0 && total > 0) {
+        campaigns = Math.ceil(total / allocNum);
+        allocated = total;
+    } else if (total > 0) {
+        campaigns = 1;
+        allocated = total;
+    }
+    const remaining = total - allocated;
+    const el = document.getElementById(counterId);
+    const strongs = el.querySelectorAll('strong');
+    strongs[0].textContent = total;
+    strongs[1].textContent = allocated;
+    strongs[2].textContent = remaining;
+    strongs[3].textContent = campaigns;
+}
+
+['genericKw', 'genericAlloc'].forEach(id => document.getElementById(id).addEventListener('input', () => updateCounter('genericKw', 'genericAlloc', 'genericCounter')));
+['compKw', 'compKwAlloc'].forEach(id => document.getElementById(id).addEventListener('input', () => updateCounter('compKw', 'compKwAlloc', 'compKwCounter')));
+['compAsins', 'compAsinAlloc'].forEach(id => document.getElementById(id).addEventListener('input', () => updateCounter('compAsins', 'compAsinAlloc', 'compAsinCounter')));
+
+// --- Reset ---
+function resetAll() {
+    // Reset product fields
+    document.getElementById('productName').value = '';
+    document.getElementById('productList').value = '';
+    document.getElementById('portfolioId').value = '';
+    document.querySelectorAll('input[type="number"]').forEach(el => {
+        if (el.id.startsWith('bid')) el.value = '0.50';
+        else if (el.id.startsWith('budget')) el.value = '10.00';
+        else if (el.id.startsWith('tos-') || el.id.startsWith('pp-')) el.value = '';
+    });
+    document.getElementById('dailyBudget').value = '10.00';
+    document.getElementById('overallBid').value = '0.50';
+    // Reset textareas outside product blocks
+    document.querySelectorAll('.col-left > .card:nth-child(2) textarea, .col-right textarea').forEach(el => el.value = '');
+    const d = new Date();
+    document.getElementById('startDate').value = d.toISOString().slice(0, 10);
+    document.getElementById('endDate').value = '';
+    document.getElementById('placementTos').value = '';
+    document.getElementById('placementPp').value = '';
+    document.querySelectorAll('.campaign-option input[type="checkbox"]').forEach(el => el.checked = false);
+    updateCounter('genericKw', 'genericAlloc', 'genericCounter');
+    updateCounter('compKw', 'compKwAlloc', 'compKwCounter');
+    updateCounter('compAsins', 'compAsinAlloc', 'compAsinCounter');
+    setMode('vendor');
+    setMarketplace('de');
+
+    // Clear error messages
+    document.getElementById('errorContainer').innerHTML = '';
+
+    // Re-mark all Step 4 fields as auto-fillable
+    budgetIds.forEach(id => autoFilledBudgets.add(id));
+    bidIds.forEach(id => autoFilledBids.add(id));
+    autoBidIds.forEach(id => autoFilledBids.add(id));
+}
+
+// --- Auto-fill Overall Budget/Bid to Step 4 ---
+const autoFilledBudgets = new Set();
+const autoFilledBids = new Set();
+let isAutoFilling = false;
+
+const budgetIds = ['budget-auto', 'budget-generic-exact', 'budget-generic-broad', 'budget-brand-exact', 'budget-brand-broad', 'budget-brand-phrase', 'budget-comp-exact', 'budget-comp-broad', 'budget-pt-comp', 'budget-pt-brand', 'budget-single', 'budget-sd-pt-comp', 'budget-sd-pt-brand'];
+const bidIds = ['bid-auto', 'bid-generic-exact', 'bid-generic-broad', 'bid-brand-exact', 'bid-brand-broad', 'bid-brand-phrase', 'bid-comp-exact', 'bid-comp-broad', 'bid-pt-comp', 'bid-pt-brand', 'bid-single', 'bid-sd-pt-comp', 'bid-sd-pt-brand'];
+const autoBidIds = ['bid-auto-close', 'bid-auto-loose', 'bid-auto-substitutes', 'bid-auto-complements'];
+
+// Mark all as auto-filled initially
+budgetIds.forEach(id => autoFilledBudgets.add(id));
+bidIds.forEach(id => autoFilledBids.add(id));
+autoBidIds.forEach(id => autoFilledBids.add(id));
+
+// When user manually edits a Step 4 field, remove it from auto-filled set
+budgetIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() {
+        if (!isAutoFilling) autoFilledBudgets.delete(id);
+    });
+});
+bidIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() {
+        if (!isAutoFilling) autoFilledBids.delete(id);
+    });
+});
+autoBidIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() {
+        if (!isAutoFilling) autoFilledBids.delete(id);
+    });
+});
+
+function syncBudgets() {
+    const val = document.getElementById('dailyBudget').value;
+    console.log('[Sync] Budget:', val, 'autoFilled:', [...autoFilledBudgets]);
+    isAutoFilling = true;
+    budgetIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && autoFilledBudgets.has(id)) {
+            el.value = val;
+        }
+    });
+    isAutoFilling = false;
+}
+// Also sync on scroll into view / focus of Step 4
+document.addEventListener('scroll', function() {
+    const step4 = document.getElementById('step4');
+    if (step4 && step4.getBoundingClientRect().top < window.innerHeight) {
+        syncBudgets();
+        syncBids();
+    }
+}, { passive: true });
+document.getElementById('dailyBudget').addEventListener('input', syncBudgets);
+document.getElementById('dailyBudget').addEventListener('change', syncBudgets);
+
+function syncBids() {
+    const val = document.getElementById('overallBid').value;
+    isAutoFilling = true;
+    bidIds.forEach(id => {
+        if (autoFilledBids.has(id)) {
+            document.getElementById(id).value = val;
+        }
+    });
+    autoBidIds.forEach(id => {
+        if (autoFilledBids.has(id)) {
+            document.getElementById(id).value = val;
+        }
+    });
+    isAutoFilling = false;
+}
+document.getElementById('overallBid').addEventListener('input', syncBids);
+document.getElementById('overallBid').addEventListener('change', syncBids);
+
+// Sync Auto campaign bid to sub-bids (close, loose, substitutes, complements)
+const autoSubBidIds = ['bid-auto-close', 'bid-auto-loose', 'bid-auto-substitutes', 'bid-auto-complements'];
+const autoSubAutoFilled = new Set(autoSubBidIds);
+function syncAutoBid() {
+    const val = document.getElementById('bid-auto').value;
+    autoSubBidIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && autoSubAutoFilled.has(id)) el.value = val;
+    });
+}
+document.getElementById('bid-auto').addEventListener('input', syncAutoBid);
+document.getElementById('bid-auto').addEventListener('change', syncAutoBid);
+autoSubBidIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', function() { autoSubAutoFilled.delete(id); });
+});
+
+// Initial sync on page load
+syncBudgets();
+syncBids();
+syncAutoBid();
+
+// --- Excel Generation ---
+function showProgress() {
+    let bar = document.querySelector('.progress-bar');
+    if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'progress-bar';
+        document.body.appendChild(bar);
+    }
+    bar.style.width = '0%';
+    bar.style.display = 'block';
+    setTimeout(() => bar.style.width = '30%', 10);
+    setTimeout(() => bar.style.width = '60%', 100);
+    return bar;
+}
+function finishProgress(bar) {
+    bar.style.width = '100%';
+    setTimeout(() => { bar.style.display = 'none'; bar.style.width = '0%'; }, 400);
+}
+
+// generateRows: returns { rows, warnings, errors, productName, itemCount, campaignCount } or null on error
+function generateRows() {
+    // Sync Step 3 values to Step 4 before generating
+    syncBudgets();
+    syncBids();
+
+    const errorContainer = document.getElementById('errorContainer');
+    errorContainer.innerHTML = '';
+    const errors = [];
+
+    const isVendor = mode === 'vendor';
+
+    // Allocation validation
+    const genericKwsCount = unique(getLines('genericKw')).length;
+    const genericAllocVal = parseInt(getLines('genericAlloc')[0], 10) || 0;
+
+    const compKwsCount = unique(getLines('compKw')).length;
+    const compKwAllocVal = parseInt(getLines('compKwAlloc')[0], 10) || 0;
+    const compAsinsCount = unique(getLines('compAsins')).length;
+    const compAsinAllocVal = parseInt(getLines('compAsinAlloc')[0], 10) || 0;
+
+    const uiDict = UI[uiLang] || UI['de'];
+    if (genericAllocVal > genericKwsCount && genericKwsCount > 0) {
+        errors.push(uiDict.err_alloc_generic.replace('{0}', genericAllocVal).replace('{1}', genericKwsCount));
+    }
+    if (compKwAllocVal > compKwsCount && compKwsCount > 0) {
+        errors.push(uiDict.err_alloc_comp_kw.replace('{0}', compKwAllocVal).replace('{1}', compKwsCount));
+    }
+    if (compAsinAllocVal > compAsinsCount && compAsinsCount > 0) {
+        errors.push(uiDict.err_alloc_comp_asin.replace('{0}', compAsinAllocVal).replace('{1}', compAsinsCount));
+    }
+
+    if (errors.length > 0) {
+        errorContainer.innerHTML = errors.map(e => '<div class="error-msg">' + e + '</div>').join('');
+        return null;
+    }
+
+    // Gather single product
+    const productName = document.getElementById('productName').value.trim();
+    const listText = document.getElementById('productList').value;
+    const productItems = listText.split('\n').map(s => s.trim()).filter(Boolean);
+    const portfolioId = document.getElementById('portfolioId').value.trim();
+
+    if (!productName && productItems.length > 0) {
+        errors.push(uiDict.err_has_items_no_name.replace('{0}', isVendor ? 'ASINs' : 'SKUs'));
+    }
+    if (productName && productItems.length === 0) {
+        errors.push(uiDict.err_has_name_no_items.replace('{0}', productName).replace('{1}', isVendor ? 'ASINs' : 'SKUs'));
+    }
+    if (!productName && productItems.length === 0) {
+        errors.push(uiDict.err_no_input);
+    }
+
+    if (errors.length > 0) {
+        errorContainer.innerHTML = errors.map(e => '<div class="error-msg">' + e + '</div>').join('');
+        return null;
+    }
+
+    // ASIN/SKU validation
+    if (isVendor) {
+        const asinRegex = /^B0[A-Z0-9]{8}$/i;
+        productItems.forEach(item => {
+            if (!asinRegex.test(item)) {
+                errors.push(uiDict.err_invalid_asin.replace('{0}', item));
+            }
+        });
+    } else {
+        productItems.forEach(item => {
+            if (item.length === 0) {
+                errors.push(uiDict.err_empty_sku);
+            }
+        });
+    }
+
+    // Validate targeting ASINs
+    if (isVendor) {
+        const asinRegex = /^B0[A-Z0-9]{8}$/i;
+        const brandAsinCheck = getLines('brandAsins');
+        brandAsinCheck.forEach(a => {
+            if (!asinRegex.test(a)) errors.push(uiDict.err_invalid_brand_asin.replace('{0}', a));
+        });
+        const compAsinCheck = getLines('compAsins');
+        compAsinCheck.forEach(a => {
+            if (!asinRegex.test(a)) errors.push(uiDict.err_invalid_comp_asin.replace('{0}', a));
+        });
+        const negProdCheck = getLines('negProdTargeting');
+        negProdCheck.forEach(a => {
+            if (!asinRegex.test(a)) errors.push(uiDict.err_invalid_neg_asin.replace('{0}', a));
+        });
+    }
+
+    if (errors.length > 0) {
+        errorContainer.innerHTML = errors.map(e => '<div class="error-msg">' + e + '</div>').join('');
+        return null;
+    }
+    const t = T[lang] || T['de'];
+    const isDE = lang === 'de';
+
+    const startDateRaw = document.getElementById('startDate').value;
+    const startDate = startDateRaw.replace(/-/g, '');
+    const endDateRaw = document.getElementById('endDate').value;
+    const endDate = endDateRaw ? endDateRaw.replace(/-/g, '') : '';
+    const placementTos = document.getElementById('placementTos').value;
+    const placementPp = document.getElementById('placementPp').value;
+
+    const biddingVal = document.getElementById('biddingStrategy').value;
+    const biddingStrategyLookup = { down: t.bidDown, updown: t.bidUpDown, fixed: t.bidFixed };
+    const biddingStrategy = biddingStrategyLookup[biddingVal];
+
+    const state = t.enabled;
+
+    const mt = { exact: t.exact, broad: t.broad, phrase: t.phrase, negExact: t.negExact, negPhrase: t.negPhrase };
+
+    const ent = {
+        campaign: t.campaign, adGroup: t.adGroup, productAd: t.productAd,
+        keyword: t.keyword, negKeyword: t.negKeyword, negCampKeyword: t.negCampKeyword,
+        prodTargeting: t.prodTargeting, negProdTargeting: t.negProdTargeting
+    };
+
+    const op = t.create;
+    const targetAuto = t.auto;
+    const targetManual = t.manual;
+
+    const headers = t.headers;
+
+    // Campaign naming (stays language-neutral for consistency)
+    const cn = {
+        auto: 'SP: Auto Campaign',
+        genericExact: 'SP: Generic Keywords (Exact)',
+        genericBroad: 'SP: Generic Keywords (Broad)',
+        brandExact: 'SP: Brand Keywords (Exact)',
+        brandBroad: 'SP: Brand Keywords (Broad)',
+        brandPhrase: 'SP: Brand Keywords (Phrase)',
+        compExact: 'SP: Competitor Keywords (Exact)',
+        compBroad: 'SP: Competitor Keywords (Broad)',
+        ptBrand: 'SP: Product Targeting (Brand)',
+        ptComp: 'SP: Product Targeting (Competitor)'
+    };
+
+    const autoTargetExpr = {
+        close: 'close-match', loose: 'loose-match',
+        substitutes: 'substitutes', complements: 'complements'
+    };
+
+    // Negative keywords
+    const negKwExactList = getLines('negKwExact');
+    const negKwPhraseList = getLines('negKwPhrase');
+    const campNegKwExactList = getLines('campNegKwExact');
+    const campNegKwPhraseList = getLines('campNegKwPhrase');
+    const negProdTargetList = getLines('negProdTargeting');
+
+    // Keywords (with duplicate detection)
+    const warnings = [];
+    function uniqueWithWarn(arr, label) {
+        const u = [...new Set(arr.map(s => s.toLowerCase()))];
+        const dupes = arr.length - u.length;
+        if (dupes > 0) warnings.push(uiDict.warn_dupes_removed.replace('{0}', dupes).replace('{1}', label));
+        return u;
+    }
+    const kwLabels = uiLang === 'en'
+        ? { generic: 'Generic Keywords', brand: 'Brand Keywords', comp: 'Competitor Keywords', single: 'Single Keywords', brandAsins: 'Brand ASINs', compAsins: 'Competitor ASINs' }
+        : { generic: 'Generische Keywords', brand: 'Eigenmarken Keywords', comp: 'Wettbewerber Keywords', single: 'Single Keywords', brandAsins: 'Eigenmarken ASINs', compAsins: 'Wettbewerber ASINs' };
+    const genericKws = uniqueWithWarn(getLines('genericKw'), kwLabels.generic);
+    const brandKws = uniqueWithWarn(getLines('brandKw'), kwLabels.brand);
+    const compKws = uniqueWithWarn(getLines('compKw'), kwLabels.comp);
+    const singleKws = uniqueWithWarn(getLines('singleKw'), kwLabels.single);
+    const brandAsinsList = uniqueWithWarn(getLines('brandAsins'), kwLabels.brandAsins);
+    const compAsinsList = uniqueWithWarn(getLines('compAsins'), kwLabels.compAsins);
+
+    // Allocations
+    const genericAllocNum = parseInt(getLines('genericAlloc')[0], 10) || 0;
+    const compKwAllocNum = parseInt(getLines('compKwAlloc')[0], 10) || 0;
+    const compAsinAllocNum = parseInt(getLines('compAsinAlloc')[0], 10) || 0;
+
+    // Helper: create empty row
+    function emptyRow() {
+        const r = {};
+        headers.forEach(h => r[h] = '');
+        return r;
+    }
+
+    // Helper: split array into chunks
+    function splitIntoChunks(arr, size) {
+        if (!size || size <= 0) return [arr];
+        const chunks = [];
+        for (let i = 0; i < arr.length; i += size) {
+            chunks.push(arr.slice(i, i + size));
+        }
+        return chunks.length ? chunks : [arr];
+    }
+
+    // Column index mapping
+    const C = {};
+    headers.forEach((h, i) => C[i] = h);
+    // By name
+    const H = {};
+    headers.forEach((h, i) => H[h] = i);
+
+    // Shorthand setters
+    function setRow(row, vals) {
+        const r = emptyRow();
+        for (const [key, val] of Object.entries(vals)) {
+            r[key] = val;
+        }
+        return r;
+    }
+
+    const hProduct = headers[0], hEntity = headers[1], hOp = headers[2], hCampId = headers[3], hAdGroupId = headers[4],
+        hPortfolioId = headers[5], hAdId = headers[6], hKwId = headers[7], hPtId = headers[8], hCampName = headers[9],
+        hAdGroupName = headers[10], hStartDate = headers[11], hEndDate = headers[12], hTargetType = headers[13],
+        hState = headers[14], hBudget = headers[15], hSku = headers[16], hAsin = headers[17], hAdGroupBid = headers[18],
+        hBid = headers[19], hKwText = headers[20], hMatchType = headers[21], hBiddingStrat = headers[22],
+        hPlacement = headers[23], hPercentage = headers[24], hPtExpr = headers[25];
+
+    const rows = [];
+
+    // Single product
+    {
+        let productLabel = t.product;
+
+        // --- Campaign Row builder ---
+        function addCampaignRow(campName, targetType, budget, bidStrat, campTos, campPp) {
+            const r = emptyRow();
+            r[hProduct] = productLabel;
+            r[hEntity] = ent.campaign;
+            r[hOp] = op;
+            r[hCampId] = campName;
+            r[hCampName] = campName;
+            r[hStartDate] = startDate;
+            if (endDate) r[hEndDate] = endDate;
+            if (portfolioId) r[hPortfolioId] = portfolioId;
+            r[hTargetType] = targetType;
+            r[hState] = state;
+            r[hBudget] = budget;
+            r[hBiddingStrat] = bidStrat;
+            rows.push(r);
+
+            // Placement adjustments (per-campaign)
+            const tosVal = campTos || placementTos;
+            const ppVal = campPp || placementPp;
+            if (tosVal && parseFloat(tosVal) > 0) {
+                const pr = emptyRow();
+                pr[hProduct] = productLabel;
+                pr[hEntity] = t.biddingAdj;
+                pr[hCampId] = campName;
+                pr[hPlacement] = t.placeTos;
+                pr[hPercentage] = tosVal;
+                rows.push(pr);
+            }
+            if (ppVal && parseFloat(ppVal) > 0) {
+                const pr = emptyRow();
+                pr[hProduct] = productLabel;
+                pr[hEntity] = t.biddingAdj;
+                pr[hCampId] = campName;
+                pr[hPlacement] = t.placePp;
+                pr[hPercentage] = ppVal;
+                rows.push(pr);
+            }
+        }
+
+        function addAdGroupRow(campName, adGroupName, defaultBid) {
+            const r = emptyRow();
+            r[hProduct] = productLabel;
+            r[hEntity] = ent.adGroup;
+            r[hOp] = op;
+            r[hCampId] = campName;
+            r[hAdGroupId] = adGroupName;
+            r[hAdGroupName] = adGroupName;
+            r[hState] = state;
+            r[hAdGroupBid] = defaultBid;
+            rows.push(r);
+        }
+
+        // Add product ad rows for ALL ASINs/SKUs in this product block
+        function addProductAdRows(campName, adGroupName) {
+            productItems.forEach(productId => {
+                const r = emptyRow();
+                r[hProduct] = productLabel;
+                r[hEntity] = ent.productAd;
+                r[hOp] = op;
+                r[hCampId] = campName;
+                r[hAdGroupId] = adGroupName;
+                r[hState] = state;
+                if (isVendor) {
+                    r[hAsin] = productId;
+                } else {
+                    r[hSku] = productId;
+                }
+                rows.push(r);
+            });
+        }
+
+        function addKeywordRow(campName, adGroupName, kwText, matchType, bid) {
+            const r = emptyRow();
+            r[hProduct] = productLabel;
+            r[hEntity] = ent.keyword;
+            r[hOp] = op;
+            r[hCampId] = campName;
+            r[hAdGroupId] = adGroupName;
+            r[hState] = state;
+            r[hKwText] = kwText;
+            r[hMatchType] = matchType;
+            r[hBid] = bid;
+            rows.push(r);
+        }
+
+        const _negKwSeen = new Set();
+        function addNegKeywordRow(campName, adGroupName, kwText, matchType) {
+            const key = campName + '|' + adGroupName + '|' + kwText.toLowerCase().trim() + '|' + matchType;
+            if (_negKwSeen.has(key)) return; // skip duplicate
+            _negKwSeen.add(key);
+            const r = emptyRow();
+            r[hProduct] = productLabel;
+            r[hEntity] = ent.negKeyword;
+            r[hOp] = op;
+            r[hCampId] = campName;
+            r[hAdGroupId] = adGroupName;
+            r[hState] = state;
+            r[hKwText] = kwText;
+            r[hMatchType] = matchType;
+            rows.push(r);
+        }
+
+        function addCampNegKeywordRow(campName, kwText, matchType) {
+            const r = emptyRow();
+            r[hProduct] = productLabel;
+            r[hEntity] = ent.negCampKeyword;
+            r[hOp] = op;
+            r[hCampId] = campName;
+            r[hState] = state;
+            r[hKwText] = kwText;
+            r[hMatchType] = matchType;
+            rows.push(r);
+        }
+
+        function addProdTargetingRow(campName, adGroupName, expr, bid) {
+            const r = emptyRow();
+            r[hProduct] = productLabel;
+            r[hEntity] = ent.prodTargeting;
+            r[hOp] = op;
+            r[hCampId] = campName;
+            r[hAdGroupId] = adGroupName;
+            r[hState] = state;
+            r[hBid] = bid;
+            r[hPtExpr] = expr;
+            rows.push(r);
+        }
+
+        function addNegProdTargetingRow(campName, adGroupName, asinVal) {
+            const r = emptyRow();
+            r[hProduct] = productLabel;
+            r[hEntity] = ent.negProdTargeting;
+            r[hOp] = op;
+            r[hCampId] = campName;
+            r[hAdGroupId] = adGroupName;
+            r[hState] = state;
+            r[hPtExpr] = 'asin="' + asinVal + '"';
+            rows.push(r);
+        }
+
+        // Add ad-group level negative keywords only (for keyword campaigns)
+        // Merged: all negative keywords from both fields, deduplicated
+        function addAllNegKeywords(campName, adGroupName) {
+            const allExact = [...new Set([...negKwExactList, ...campNegKwExactList])];
+            const allPhrase = [...new Set([...negKwPhraseList, ...campNegKwPhraseList])];
+            allExact.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negExact));
+            allPhrase.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negPhrase));
+        }
+
+        // Add ad-group level negative product targeting only
+        function addAdGroupNegProdTargeting(campName, adGroupName) {
+            negProdTargetList.forEach(asin => addNegProdTargetingRow(campName, adGroupName, asin));
+        }
+
+        // ========== AUTO CAMPAIGN ==========
+        if (document.getElementById('chk-auto').checked) {
+            const bid = parseFloat(document.getElementById('bid-auto').value) || 0.50;
+            const budget = parseFloat(document.getElementById('budget-auto').value) || 10.00;
+            const campName = cn.auto + ' - ' + productName;
+            const adGroupName = 'ALL';
+
+            const tosAuto = document.getElementById('tos-auto').value;
+            const ppAuto = document.getElementById('pp-auto').value;
+            addCampaignRow(campName, targetAuto, budget, biddingStrategy, tosAuto, ppAuto);
+            addAdGroupRow(campName, adGroupName, bid);
+            addProductAdRows(campName, adGroupName);
+
+            // Sub-targets
+            const autoSubs = [
+                { id: 'auto-close', bidId: 'bid-auto-close', expr: autoTargetExpr.close },
+                { id: 'auto-loose', bidId: 'bid-auto-loose', expr: autoTargetExpr.loose },
+                { id: 'auto-substitutes', bidId: 'bid-auto-substitutes', expr: autoTargetExpr.substitutes },
+                { id: 'auto-complements', bidId: 'bid-auto-complements', expr: autoTargetExpr.complements }
+            ];
+            autoSubs.forEach(sub => {
+                if (document.getElementById(sub.id).checked) {
+                    const subBid = parseFloat(document.getElementById(sub.bidId).value) || bid;
+                    addProdTargetingRow(campName, adGroupName, sub.expr, subBid);
+                }
+            });
+
+            // Negatives - Auto campaign: ad-group level only
+            if (document.getElementById('neg-auto').checked) {
+                // Ad-group level negatives from both fields (merged, no duplicates)
+                const allNegExact = [...new Set([...negKwExactList, ...campNegKwExactList])];
+                const allNegPhrase = [...new Set([...negKwPhraseList, ...campNegKwPhraseList])];
+                allNegExact.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negExact));
+                allNegPhrase.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negPhrase));
+                // Negative product targeting
+                negProdTargetList.forEach(asin => addNegProdTargetingRow(campName, adGroupName, asin));
+            }
+
+            // Cross-Negation: Brand KWs als Negative Broad, Generic Exact KWs als Negative Exact in Auto
+            if (document.getElementById('cross-neg-auto').checked) {
+                brandKws.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negPhrase));
+                genericKws.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negExact));
+            }
+        }
+
+        // ========== KEYWORD CAMPAIGNS ==========
+        function buildKeywordCampaigns(kwList, allocNum, campNameBase, matchType, matchTypeLabel, chkId, bidId, budgetId, negId, tosId, ppId) {
+            if (!document.getElementById(chkId).checked || kwList.length === 0) return;
+            const bid = parseFloat(document.getElementById(bidId).value) || 0.50;
+            const budget = parseFloat(document.getElementById(budgetId).value) || 10.00;
+            const useNeg = document.getElementById(negId).checked;
+            const campTos = tosId ? document.getElementById(tosId).value : '';
+            const campPp = ppId ? document.getElementById(ppId).value : '';
+
+            const chunks = splitIntoChunks(kwList, allocNum);
+            const totalChunks = chunks.length;
+
+            chunks.forEach((chunk, idx) => {
+                const splitLabel = totalChunks > 1 ? ' ' + (idx + 1) + '/' + totalChunks : '';
+                const campName = campNameBase + splitLabel + ' - ' + productName;
+                const adGroupName = matchTypeLabel;
+
+                addCampaignRow(campName, targetManual, budget, biddingStrategy, campTos, campPp);
+                addAdGroupRow(campName, adGroupName, bid);
+                addProductAdRows(campName, adGroupName);
+
+                chunk.forEach(kw => {
+                    addKeywordRow(campName, adGroupName, kw, matchType, bid);
+                });
+
+                if (useNeg) {
+                    addAllNegKeywords(campName, adGroupName);
+                }
+            });
+        }
+
+        // Generic Exact
+        buildKeywordCampaigns(genericKws, genericAllocNum, cn.genericExact, mt.exact, 'EXACT', 'chk-generic-exact', 'bid-generic-exact', 'budget-generic-exact', 'neg-generic-exact', 'tos-generic-exact', 'pp-generic-exact');
+
+        // Generic Broad
+        buildKeywordCampaigns(genericKws, genericAllocNum, cn.genericBroad, mt.broad, 'BROAD', 'chk-generic-broad', 'bid-generic-broad', 'budget-generic-broad', 'neg-generic-broad', 'tos-generic-broad', 'pp-generic-broad');
+
+        // Brand Exact
+        buildKeywordCampaigns(brandKws, 0, cn.brandExact, mt.exact, 'EXACT', 'chk-brand-exact', 'bid-brand-exact', 'budget-brand-exact', 'neg-brand-exact', 'tos-brand-exact', 'pp-brand-exact');
+
+        // Brand Broad
+        buildKeywordCampaigns(brandKws, 0, cn.brandBroad, mt.broad, 'BROAD', 'chk-brand-broad', 'bid-brand-broad', 'budget-brand-broad', 'neg-brand-broad', 'tos-brand-broad', 'pp-brand-broad');
+
+        // Brand Phrase
+        buildKeywordCampaigns(brandKws, 0, cn.brandPhrase, mt.phrase, 'PHRASE', 'chk-brand-phrase', 'bid-brand-phrase', 'budget-brand-phrase', 'neg-brand-phrase', 'tos-brand-phrase', 'pp-brand-phrase');
+
+        // Competitor Exact
+        buildKeywordCampaigns(compKws, compKwAllocNum, cn.compExact, mt.exact, 'EXACT', 'chk-comp-exact', 'bid-comp-exact', 'budget-comp-exact', 'neg-comp-exact', 'tos-comp-exact', 'pp-comp-exact');
+
+        // Competitor Broad
+        buildKeywordCampaigns(compKws, compKwAllocNum, cn.compBroad, mt.broad, 'BROAD', 'chk-comp-broad', 'bid-comp-broad', 'budget-comp-broad', 'neg-comp-broad', 'tos-comp-broad', 'pp-comp-broad');
+
+        // ========== PRODUCT TARGETING - BRAND ==========
+        if (document.getElementById('chk-pt-brand').checked && brandAsinsList.length > 0) {
+            const bid = parseFloat(document.getElementById('bid-pt-brand').value) || 0.50;
+            const budget = parseFloat(document.getElementById('budget-pt-brand').value) || 10.00;
+            const useNeg = document.getElementById('neg-pt-brand').checked;
+            const campName = cn.ptBrand + ' - ' + productName;
+            const adGroupName = 'ASIN';
+            const tosPtBrand = document.getElementById('tos-pt-brand').value;
+            const ppPtBrand = document.getElementById('pp-pt-brand').value;
+
+            addCampaignRow(campName, targetManual, budget, biddingStrategy, tosPtBrand, ppPtBrand);
+            addAdGroupRow(campName, adGroupName, bid);
+            addProductAdRows(campName, adGroupName);
+
+            brandAsinsList.forEach(asin => {
+                addProdTargetingRow(campName, adGroupName, 'asin="' + asin.toUpperCase() + '"', bid);
+            });
+
+            if (useNeg) {
+                addAdGroupNegProdTargeting(campName, adGroupName);
+            }
+        }
+
+        // ========== PRODUCT TARGETING - COMPETITOR ==========
+        if (document.getElementById('chk-pt-comp').checked && compAsinsList.length > 0) {
+            const bid = parseFloat(document.getElementById('bid-pt-comp').value) || 0.50;
+            const budget = parseFloat(document.getElementById('budget-pt-comp').value) || 10.00;
+            const useNeg = document.getElementById('neg-pt-comp').checked;
+            const tosPtComp = document.getElementById('tos-pt-comp').value;
+            const ppPtComp = document.getElementById('pp-pt-comp').value;
+
+            const chunks = splitIntoChunks(compAsinsList, compAsinAllocNum);
+            const totalChunks = chunks.length;
+
+            chunks.forEach((chunk, idx) => {
+                const splitLabel = totalChunks > 1 ? ' - ' + (idx + 1) + '/' + totalChunks : '';
+                const campName = cn.ptComp + splitLabel + ' - ' + productName;
+                const adGroupName = 'ASIN';
+
+                addCampaignRow(campName, targetManual, budget, biddingStrategy, tosPtComp, ppPtComp);
+                addAdGroupRow(campName, adGroupName, bid);
+                addProductAdRows(campName, adGroupName);
+
+                chunk.forEach(asin => {
+                    addProdTargetingRow(campName, adGroupName, 'asin="' + asin.toUpperCase() + '"', bid);
+                });
+
+                if (useNeg) {
+                    addAdGroupNegProdTargeting(campName, adGroupName);
+                }
+            });
+        }
+
+        // ========== SINGLE KEYWORD CAMPAIGNS ==========
+        if (document.getElementById('chk-single').checked && singleKws.length > 0) {
+            const bid = parseFloat(document.getElementById('bid-single').value) || 0.50;
+            const budget = parseFloat(document.getElementById('budget-single').value) || 10.00;
+            const useNeg = document.getElementById('neg-single').checked;
+            const tosSingle = document.getElementById('tos-single').value;
+            const ppSingle = document.getElementById('pp-single').value;
+
+            singleKws.forEach(kw => {
+                const campName = 'SP: KW "' + kw + '" - ' + productName;
+                const adGroupName = 'EXACT';
+
+                addCampaignRow(campName, targetManual, budget, biddingStrategy, tosSingle, ppSingle);
+                addAdGroupRow(campName, adGroupName, bid);
+                addProductAdRows(campName, adGroupName);
+                addKeywordRow(campName, adGroupName, kw, mt.exact, bid);
+
+                if (useNeg) {
+                    addAllNegKeywords(campName, adGroupName);
+                }
+            });
+        }
+
+        // SD campaigns removed — only SP supported
+    } // end single product block
+
+    if (rows.length === 0) {
+        errors.push(uiDict.err_no_campaigns);
+        errorContainer.innerHTML = errors.map(e => '<div class="error-msg">' + e + '</div>').join('');
+        return null;
+    }
+
+    // Count campaigns
+    const campNames = new Set();
+    const entCampName = t.campaign;
+    rows.forEach(r => {
+        if (r[headers[1]] === entCampName && r[headers[9]]) campNames.add(r[headers[9]]);
+    });
+
+    // Show warnings (non-blocking)
+    if (warnings.length > 0) {
+        errorContainer.innerHTML = warnings.map(w => '<div class="warn-msg">' + w + '</div>').join('');
+    }
+
+    return { rows, warnings, headers, isDE, t, productName, itemCount: productItems.length, campaignCount: campNames.size };
+}
+
+// addToAccumulator: validate, generate rows, store, update UI
+function addToAccumulator() {
+    const progressBar = showProgress();
+    try {
+        const result = generateRows();
+        if (!result) { finishProgress(progressBar); return; }
+
+        // Push rows to accumulator
+        window.accumulatedRows.push(...result.rows);
+
+        // Store product info + form state for editing
+        window.accumulatedProducts.push({
+            name: result.productName,
+            itemCount: result.itemCount,
+            campaignCount: result.campaignCount,
+            rowCount: result.rows.length,
+            formState: gatherFormState()
+        });
+
+        // Update accumulator UI
+        updateAccumulatorUI();
+
+        // Show success banner
+        showAccumulatorSuccess(result.productName + ' ' + (UI[uiLang] || UI['de']).acc_added);
+
+        // Clear product-specific fields (keep campaign settings)
+        document.getElementById('productName').value = '';
+        document.getElementById('productList').value = '';
+        document.getElementById('portfolioId').value = '';
+        // Clear keyword textareas
+        ['genericKw', 'genericAlloc', 'brandKw', 'compKw', 'compKwAlloc', 'singleKw'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        // Clear ASIN textareas
+        ['brandAsins', 'compAsins', 'compAsinAlloc'].forEach(id => {
+            document.getElementById(id).value = '';
+        });
+        // Update counters
+        updateCounter('genericKw', 'genericAlloc', 'genericCounter');
+        updateCounter('compKw', 'compKwAlloc', 'compKwCounter');
+        updateCounter('compAsins', 'compAsinAlloc', 'compAsinCounter');
+
+        // Clear errors
+        document.getElementById('errorContainer').innerHTML = '';
+    } catch(e) { console.error(e); } finally { finishProgress(progressBar); }
+}
+
+function updateAccumulatorUI() {
+    const count = window.accumulatedProducts.length;
+    const dict = UI[uiLang] || UI['de'];
+    const prodLabel = uiLang === 'en'
+        ? count + ' ' + (count !== 1 ? 'Products' : 'Product') + ' in Bulk Sheet'
+        : count + ' ' + (count !== 1 ? 'Produkte' : 'Produkt') + ' im Bulk Sheet';
+    document.getElementById('accCount').textContent = prodLabel;
+    document.getElementById('downloadBtn').disabled = count === 0;
+
+    const campLabel = dict.acc_campaigns;
+    const container = document.getElementById('accProducts');
+    container.innerHTML = '';
+    window.accumulatedProducts.forEach((p, idx) => {
+        const div = document.createElement('div');
+        div.className = 'acc-product-item';
+        div.innerHTML = '<span>' + (idx + 1) + '. ' + escapeHtml(p.name) + ' (' + p.itemCount + ' ' + (mode === 'vendor' ? 'ASINs' : 'SKUs') + ', ' + p.campaignCount + ' ' + campLabel + ')</span><button onclick="editProduct(' + idx + ')" style="margin-right:4px;" title="Bearbeiten">&#9998;</button><button onclick="removeFromAccumulator(' + idx + ')" title="Entfernen">&times;</button>';
+        container.appendChild(div);
+    });
+}
+
+function editProduct(idx) {
+    if (idx < 0 || idx >= window.accumulatedProducts.length) return;
+    const product = window.accumulatedProducts[idx];
+    if (!product.formState) { alert('Keine Formulardaten gespeichert für dieses Produkt.'); return; }
+    // Restore form state
+    applyFormState(product.formState);
+    // Remove from accumulator
+    removeFromAccumulator(idx);
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function removeFromAccumulator(idx) {
+    if (idx < 0 || idx >= window.accumulatedProducts.length) return;
+    // Calculate how many rows to remove
+    let startRow = 0;
+    for (let i = 0; i < idx; i++) {
+        startRow += window.accumulatedProducts[i].rowCount;
+    }
+    const removeCount = window.accumulatedProducts[idx].rowCount;
+    window.accumulatedRows.splice(startRow, removeCount);
+    window.accumulatedProducts.splice(idx, 1);
+    updateAccumulatorUI();
+}
+
+function downloadBulkSheet() {
+    if (window.accumulatedRows.length === 0) { alert((UI[uiLang] || UI['de']).acc_no_products); return; }
+
+    // Use the headers from the first accumulated product
+    const firstProduct = window.accumulatedProducts[0];
+    const t = T[lang] || T['de'];
+    const headers = t.headers;
+
+    const allRows = window.accumulatedRows;
+
+    // Convert row objects to arrays based on headers
+    const dataRows = allRows.map(r => {
+        return headers.map(h => {
+            if (r[h] !== undefined && r[h] !== null) return r[h];
+            // Try matching by stripping special chars (handle umlaut differences)
+            for (const key of Object.keys(r)) {
+                if (key.replace(/[^a-zA-Z]/g, '').toLowerCase() === h.replace(/[^a-zA-Z]/g, '').toLowerCase()) {
+                    return r[key];
+                }
+            }
+            return '';
+        });
+    });
+
+    const spLabel = 'Sponsored Products';
+    const wb = XLSX.utils.book_new();
+
+    if (dataRows.length > 0) {
+        const sheetData = [headers, ...dataRows];
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+        ws['!cols'] = headers.map(() => ({ wch: 20 }));
+        XLSX.utils.book_append_sheet(wb, ws, t.sheetSP);
+    }
+
+    if (!wb.SheetNames.length) {
+        alert((UI[uiLang] || UI['de']).err_no_export_data);
+        return;
+    }
+
+    const today = new Date();
+    const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    const fileName = 'Bulk-Upload ' + dateStr + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+    const dict = UI[uiLang] || UI['de'];
+    showSuccess(dict.acc_success + ' "' + fileName + '" (' + allRows.length + ' ' + dict.acc_rows + ').');
+}
+
+function clearAccumulator() {
+    const count = window.accumulatedProducts.length;
+    if (count === 0) return;
+    const dict = UI[uiLang] || UI['de'];
+    if (!confirm(dict.acc_clear_confirm_pre + count + ' ' + (count !== 1 ? (uiLang === 'en' ? 'Products' : 'Produkten') : dict.acc_product_singular) + dict.acc_clear_confirm_post)) return;
+    window.accumulatedRows = [];
+    window.accumulatedProducts = [];
+    updateAccumulatorUI();
+}
+
+function showAccumulatorSuccess(msg) {
+    const banner = document.createElement('div');
+    banner.className = 'acc-success-banner';
+    banner.textContent = msg;
+    document.body.appendChild(banner);
+    setTimeout(() => { if (banner.parentNode) banner.remove(); }, 3500);
+}
+
+// Preview and download functions replaced by accumulator pattern
+
+function showSuccess(msg) {
+    const container = document.getElementById('errorContainer');
+    container.innerHTML = '<div class="success-msg">' + msg + '</div>';
+    setTimeout(() => {
+        const el = container.querySelector('.success-msg');
+        if (el) el.remove();
+    }, 4000);
+}
+</script>
+</body>
+</html>

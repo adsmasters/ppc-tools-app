@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hilfe - AdsMasters PPC Tools</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="auth-guard.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+            --text-primary: #e6edf3; --text-secondary: #8b949e; --accent: #3551FF;
+        }
+        [data-theme="light"] {
+            --bg-primary: #ffffff; --bg-secondary: #f6f8fa; --border: #d0d7de;
+            --text-primary: #1f2328; --text-secondary: #656d76; --accent: #3551FF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .topbar-left { display: flex; align-items: center; gap: 32px; }
+        .topbar-logo { font-size: 18px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .topbar-logo span { color: var(--accent); }
+        .topbar-nav { display: flex; gap: 16px; }
+        .topbar-nav a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .topbar-nav a:hover { color: var(--text-primary); }
+        .topbar-nav a.active { color: var(--text-primary); font-weight: 600; }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1; }
+        .theme-toggle:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-logout:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+        .main { max-width: 900px; margin: 0 auto; padding: 32px; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .page-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 32px; }
+
+        .toc { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin-bottom: 32px; }
+        .toc-title { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+        .toc-group { margin-bottom: 8px; }
+        .toc-group-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+        .toc a { display: block; color: var(--accent); text-decoration: none; font-size: 13px; padding: 2px 0 2px 12px; }
+        .toc a:hover { text-decoration: underline; }
+
+        .tool-header { font-size: 20px; font-weight: 700; margin: 40px 0 8px; padding: 12px 0; border-bottom: 2px solid var(--accent); color: var(--accent); }
+        .section { margin-bottom: 28px; }
+        .section h3 { font-size: 15px; font-weight: 700; margin: 16px 0 8px; }
+        .section p { font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 10px; }
+        .section ul { margin: 8px 0 12px 20px; }
+        .section li { font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
+        .section li strong { color: var(--text-primary); }
+
+        .card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 10px 0; }
+        .card-label { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 6px; }
+
+        @media (max-width: 600px) {
+            .topbar { padding: 0 12px; height: auto; padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
+            .main { padding: 16px; }
+        }
+    </style>
+</head>
+<body>
+<script>
+    // Auth loaded via external scripts
+    const saved = localStorage.getItem('ppc_theme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    function toggleTheme() {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('ppc_theme', next);
+        document.documentElement.setAttribute('data-theme', next);
+        document.getElementById('themeToggle').innerHTML = next === 'dark' ? '&#9788;' : '&#9790;';
+    }
+</script>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="dashboard.html" class="topbar-logo">Ads<span>Masters</span> PPC Tools</a>
+        <nav class="topbar-nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="campaign-creator.html">Kampagnen Ersteller</a>
+            <a href="keyword-harvesting.html">Keyword Harvesting</a>
+            <a href="wasted-spend.html">Wasted Ad Spend</a>
+            <a href="bid-optimizer.html">Bid Optimizer</a>
+            <a href="negative-manager.html">Negatives</a>
+            <a href="audit.html">Audit</a>
+            <a href="asin-optimizer.html">ASIN Optimizer</a>
+            <a href="help.html" class="active">Hilfe</a>
+        </nav>
+    </div>
+    <div class="topbar-right">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#9790;</button>
+        <button class="btn-logout" onclick="ppcLogout()">Logout</button>
+    </div>
+</div>
+<script>document.getElementById('themeToggle').innerHTML = (localStorage.getItem('ppc_theme') || 'light') === 'dark' ? '&#9788;' : '&#9790;';</script>
+
+<div class="main">
+    <h1 class="page-title">Hilfe & Dokumentation</h1>
+    <p class="page-sub">Anleitung zu allen PPC Tools</p>
+
+    <div class="toc">
+        <div class="toc-title">Inhaltsverzeichnis</div>
+        <div class="toc-group">
+            <div class="toc-group-title">1. Dashboard</div>
+            <a href="#dashboard-overview">Übersicht</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">2. Kampagnen Ersteller</div>
+            <a href="#cc-overview">Übersicht & Workflow</a>
+            <a href="#cc-products">Beworbene Produkte (Vendor / Seller)</a>
+            <a href="#cc-edit">Produkte bearbeiten</a>
+            <a href="#cc-keywords">Keywords & Targeting</a>
+            <a href="#cc-settings">Kampagnen-Einstellungen</a>
+            <a href="#cc-templates">Kampagnen-Vorlagen</a>
+            <a href="#cc-tips">Tipps</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">3. Keyword Harvesting</div>
+            <a href="#kh-overview">Übersicht</a>
+            <a href="#kh-upload">Bulk Sheet hochladen</a>
+            <a href="#kh-filter">Filter & Kriterien</a>
+            <a href="#kh-export">Harvest Bulk Sheet erstellen</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">4. Wasted Ad Spend</div>
+            <a href="#ws-overview">Übersicht</a>
+            <a href="#ws-filter">Filter definieren</a>
+            <a href="#ws-results">Ergebnisse & Negatives Bulk Sheet</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">5. Bid Optimizer</div>
+            <a href="#bo-overview">Übersicht</a>
+            <a href="#bo-corridors">ROAS-Korridore</a>
+            <a href="#bo-exclusions">Ausschlüsse</a>
+            <a href="#bo-export">Optimiertes Bulk Sheet</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">6. Negatives (Negative Keyword Manager)</div>
+            <a href="#neg-overview">Übersicht</a>
+            <a href="#neg-keywords">Keywords & ASINs</a>
+            <a href="#neg-settings">Einstellungen</a>
+            <a href="#neg-export">Export</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">7. ASIN Optimizer</div>
+            <a href="#asin-overview">Übersicht</a>
+            <a href="#asin-upload">Bulk Sheet hochladen</a>
+            <a href="#asin-criteria">Kriterien</a>
+            <a href="#asin-views">Zwei Ansichten</a>
+            <a href="#asin-exclusions">Ausschlüsse</a>
+            <a href="#asin-export">Export</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">8. Audit (PPC Audit)</div>
+            <a href="#audit-overview">Übersicht</a>
+            <a href="#audit-upload">Bulk Sheet hochladen</a>
+            <a href="#audit-total">Gesamt-Performance</a>
+            <a href="#audit-formats">Werbeformat-Aufschlüsselung</a>
+            <a href="#audit-camptype">SP Kampagnentyp-Analyse</a>
+            <a href="#audit-placement">Platzierungsanalyse</a>
+            <a href="#audit-top">Top Placements</a>
+            <a href="#audit-sb">SB Suchbegriffe</a>
+            <a href="#audit-sd">SD Kampagnen-Performance</a>
+            <a href="#audit-wasted">Wasted Spend Filter</a>
+        </div>
+        <div class="toc-group">
+            <div class="toc-group-title">Allgemein</div>
+            <a href="#general-bulksheet">Bulk Sheet Format</a>
+            <a href="#general-upload">Datei hochladen</a>
+        </div>
+    </div>
+
+    <!-- ==================== DASHBOARD ==================== -->
+    <h2 class="tool-header" id="dashboard">1. Dashboard</h2>
+
+    <div class="section" id="dashboard-overview">
+        <h3>Übersicht</h3>
+        <p>Das Dashboard ist die Startseite der PPC Tools. Es zeigt alle verfügbaren Tools auf einen Blick mit kurzer Beschreibung und direktem Link. Von hier aus können alle Tools gestartet werden:</p>
+        <ul>
+            <li><strong>Campaign Creator:</strong> Kampagnen-Bulk-Sheets erstellen</li>
+            <li><strong>Keyword Harvesting:</strong> Profitable Suchbegriffe aus Auto-Kampagnen finden</li>
+            <li><strong>Wasted Ad Spend:</strong> Geldverschwender identifizieren und negieren</li>
+            <li><strong>Bid Optimizer:</strong> Gebote basierend auf ROAS-Korridoren optimieren</li>
+            <li><strong>Negative Manager:</strong> Strategische Negatives in Kampagnen einfügen</li>
+            <li><strong>PPC Audit:</strong> Umfassende PPC-Analyse über SP, SB und SD</li>
+            <li><strong>ASIN Optimizer:</strong> Unterperformende Produkte in Kampagnen pausieren</li>
+        </ul>
+    </div>
+
+    <!-- ==================== KAMPAGNEN ERSTELLER ==================== -->
+    <h2 class="tool-header" id="cc">2. Kampagnen Ersteller</h2>
+
+    <div class="section" id="cc-overview">
+        <h3>Übersicht & Workflow</h3>
+        <p>Der Kampagnen Ersteller generiert Amazon Sponsored Products Bulk Upload Sheets im Excel-Format. Produkte werden einzeln hinzugefügt und zu einem kombinierten Bulk Sheet zusammengeführt.</p>
+        <ul>
+            <li><strong>Step 1:</strong> Produkte und ASINs/SKUs definieren</li>
+            <li><strong>Step 2:</strong> Keywords und Targeting-ASINs eingeben</li>
+            <li><strong>Step 3:</strong> Gebote, Budget und Einstellungen festlegen</li>
+            <li><strong>Step 4:</strong> Kampagnentypen auswählen und konfigurieren</li>
+        </ul>
+        <p>Nach dem Generieren erscheint eine Vorschau. Die Excel-Datei wird erst nach Bestätigung heruntergeladen.</p>
+    </div>
+
+    <div class="section" id="cc-products">
+        <h3>Beworbene Produkte (Vendor / Seller)</h3>
+        <p>Wähle den passenden Modus je nach Kontotyp:</p>
+        <ul>
+            <li><strong>Vendor (ASIN):</strong> Produkte werden über ASINs identifiziert. ASINs müssen 10 Zeichen lang sein und mit B0 beginnen.</li>
+            <li><strong>Seller (SKU):</strong> Produkte werden über SKUs identifiziert.</li>
+        </ul>
+        <p>Jede Produktgruppe erhält eigene Kampagnen. Der Produktname wird für die Kampagnenbenennung verwendet.</p>
+    </div>
+
+    <div class="section" id="cc-edit">
+        <h3>Produkte nachträglich bearbeiten</h3>
+        <p>Bereits hinzugefügte Produkte können jederzeit bearbeitet werden. In der Produktliste unterhalb des Formulars gibt es zwei Buttons pro Produkt:</p>
+        <ul>
+            <li><strong>Stift-Icon:</strong> Lädt alle Formulardaten des Produkts zurück -- Produktname, SKUs/ASINs, Keywords, Gebote und Einstellungen. Das Produkt wird aus der Liste entfernt und kann nach der Korrektur erneut hinzugefügt werden.</li>
+            <li><strong>X:</strong> Entfernt das Produkt endgültig aus der Liste.</li>
+        </ul>
+        <p>So können z.B. falsch eingetragene SKUs oder ASINs korrigiert werden, ohne das gesamte Bulk Sheet neu erstellen zu müssen.</p>
+    </div>
+
+    <div class="section" id="cc-keywords">
+        <h3>Keywords & Targeting</h3>
+        <ul>
+            <li><strong>Generische Keywords:</strong> Allgemeine Suchbegriffe. Werden in Exact- und Broad-Match-Kampagnen aufgeteilt.</li>
+            <li><strong>Eigenmarken Keywords:</strong> Keywords mit Markennamen. Exact, Broad und Phrase Kampagnen.</li>
+            <li><strong>Wettbewerber Keywords:</strong> Fremdmarken-Keywords. Exact und Broad Kampagnen.</li>
+            <li><strong>Einzelne Keywords:</strong> Jedes Keyword wird als eigene Kampagne angelegt (Exact Match).</li>
+            <li><strong>Produktausrichtung:</strong> Eigene und Wettbewerber-ASINs für Product Targeting Kampagnen.</li>
+        </ul>
+        <div class="card">
+            <div class="card-label">Keyword Allocation</div>
+            <p>Bestimmt, wie viele Keywords pro Kampagne gruppiert werden. Beispiel: 50 Keywords mit Allocation 10 = 5 Kampagnen mit je 10 Keywords.</p>
+        </div>
+    </div>
+
+    <div class="section" id="cc-settings">
+        <h3>Kampagnen-Einstellungen</h3>
+        <ul>
+            <li><strong>Gebotsstrategie:</strong> Nur senken / Erhöhen und senken / Fest</li>
+            <li><strong>Standardgebot & Tagesbudget:</strong> Werden in alle Kampagnen-Vorlagen übernommen</li>
+            <li><strong>Negative Keywords:</strong> Auf Anzeigengruppen- oder Kampagnen-Ebene. Auch negatives Produkt-Targeting möglich.</li>
+            <li><strong>Cross-Negation:</strong> Wenn aktiviert, werden manuelle Keywords als Negatives in die Auto-Kampagne eingefügt um Kannibalisierung zu verhindern.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="cc-templates">
+        <h3>Kampagnen-Vorlagen</h3>
+        <p>Wähle aus, welche Kampagnentypen erstellt werden sollen:</p>
+        <ul>
+            <li><strong>Auto-Kampagne:</strong> Mit Sub-Targeting (Enge/Entfernte Übereinstimmung, Ersatz, Ergänzungen)</li>
+            <li><strong>Generic Keywords:</strong> Exact & Broad Match</li>
+            <li><strong>Brand Keywords:</strong> Exact, Broad & Phrase Match</li>
+            <li><strong>Competitor Keywords:</strong> Exact & Broad Match</li>
+            <li><strong>Produktausrichtung:</strong> Brand & Competitor ASINs</li>
+            <li><strong>Einzelnes Keyword:</strong> Eine Kampagne pro Keyword (Exact)</li>
+        </ul>
+    </div>
+
+    <div class="section" id="cc-tips">
+        <h3>Tipps</h3>
+        <ul>
+            <li><strong>Cross-Negation aktivieren:</strong> Verhindert Keyword-Kannibalisierung zwischen Auto- und manuellen Kampagnen</li>
+            <li><strong>Keyword Allocation nutzen:</strong> Bei vielen Keywords auf 10-15 pro Kampagne aufteilen</li>
+            <li><strong>Presets speichern:</strong> Grundkonfigurationen als Preset speichern und nur Keywords/ASINs anpassen</li>
+        </ul>
+    </div>
+
+    <!-- ==================== KEYWORD HARVESTING ==================== -->
+    <h2 class="tool-header" id="kh">3. Keyword Harvesting</h2>
+
+    <div class="section" id="kh-overview">
+        <h3>Übersicht</h3>
+        <p>Findet profitable Suchbegriffe aus Auto-Kampagnen, die noch nicht in manuellen Kampagnen als Keywords existieren. Erstellt daraus neue manuelle Kampagnen als Bulk Sheet.</p>
+        <div class="card">
+            <div class="card-label">Wie funktioniert es?</div>
+            <p>1. Suchbegriffe aus Auto-Kampagnen werden gesammelt.<br>
+            2. Abgleich gegen bestehende Keywords in manuellen Kampagnen.<br>
+            3. Nur Suchbegriffe die noch NICHT als Keyword existieren werden als Harvest-Kandidaten angezeigt.<br>
+            4. ASIN-Suchbegriffe (B0...) werden automatisch als Product Targeting Kampagnen erstellt.</p>
+        </div>
+    </div>
+
+    <div class="section" id="kh-upload">
+        <h3>Bulk Sheet hochladen</h3>
+        <p>Lade ein Amazon Bulk Sheet (Excel) hoch. Das Tool erkennt automatisch:</p>
+        <ul>
+            <li><strong>Seller vs. Vendor:</strong> Anhand der SKU/ASIN-Spalte</li>
+            <li><strong>Auto vs. Manuelle Kampagnen:</strong> Anhand der Targeting-Typ Spalte</li>
+            <li><strong>Alle Sheets:</strong> Kampagnen-Sheet und Search Term Report werden automatisch erkannt</li>
+        </ul>
+    </div>
+
+    <div class="section" id="kh-filter">
+        <h3>Filter & Kriterien</h3>
+        <ul>
+            <li><strong>Min. Bestellungen:</strong> Nur Suchbegriffe mit mindestens X Bestellungen</li>
+            <li><strong>Max. ACoS:</strong> Nur Suchbegriffe unter einem bestimmten ACoS-Wert</li>
+            <li><strong>Nur Auto-Kampagnen:</strong> Nur Suchbegriffe aus Auto-Targeting Kampagnen berücksichtigen</li>
+        </ul>
+    </div>
+
+    <div class="section" id="kh-export">
+        <h3>Harvest Bulk Sheet erstellen</h3>
+        <p>Das Tool erstellt pro Produkt eine eigene Harvest-Kampagne mit:</p>
+        <ul>
+            <li><strong>Campaign + Ad Group + Product Ads:</strong> Vollständige Kampagnenstruktur wie beim Kampagnen Ersteller</li>
+            <li><strong>Keywords (Exact):</strong> Für Text-Suchbegriffe</li>
+            <li><strong>Product Targeting:</strong> Für ASIN-Suchbegriffe (B0...)</li>
+            <li><strong>SKU/ASIN:</strong> Automatisch aus der Quell-Kampagne übernommen</li>
+        </ul>
+    </div>
+
+    <!-- ==================== WASTED AD SPEND ==================== -->
+    <h2 class="tool-header" id="ws">4. Wasted Ad Spend</h2>
+
+    <div class="section" id="ws-overview">
+        <h3>Übersicht</h3>
+        <p>Findet Suchbegriffe die Geld verschwenden und erstellt ein Negatives Keyword Bulk Sheet, um diese auszuschließen.</p>
+    </div>
+
+    <div class="section" id="ws-filter">
+        <h3>Filter definieren</h3>
+        <p>Definiere, ab wann ein Suchbegriff als "Wasted Spend" gilt:</p>
+        <ul>
+            <li><strong>Min. Klicks:</strong> Grundschwelle (z.B. 20 Klicks). Suchbegriffe mit weniger Klicks werden ignoriert.</li>
+            <li><strong>Max. ROAS:</strong> Suchbegriffe mit ROAS unter diesem Wert gelten als Wasted. Suchbegriffe mit 0 Bestellungen haben automatisch ROAS 0.</li>
+            <li><strong>Min. Spend (optional):</strong> Zusätzlicher Filter nach Mindest-Ausgaben.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="ws-results">
+        <h3>Ergebnisse & Negatives Bulk Sheet</h3>
+        <p>Die Ergebnistabelle zeigt alle Wasted-Suchbegriffe mit Spend, Klicks, ROAS und Kampagnenzuordnung.</p>
+        <ul>
+            <li><strong>Aggregierte Ansicht:</strong> Suchbegriffe zusammengefasst über alle Kampagnen</li>
+            <li><strong>Pro Kampagne:</strong> Detailansicht mit Kampagnen- und Anzeigengruppen-Zuordnung</li>
+            <li><strong>ASIN als Negative Product Targeting:</strong> ASIN-Suchbegriffe (B0...) werden automatisch als Negative Product Targeting exportiert, nicht als Keyword</li>
+            <li><strong>Deduplizierung:</strong> Suchbegriffe die in mehreren Anzeigengruppen derselben Kampagne vorkommen, werden im Export automatisch dedupliziert -- pro Kampagne wird nur ein negativer Eintrag erstellt</li>
+            <li><strong>Bereits negiert:</strong> Suchbegriffe die schon als Negative existieren werden markiert</li>
+        </ul>
+        <div class="card">
+            <div class="card-label">Negatives Bulk Sheet</div>
+            <p>Das exportierte Bulk Sheet enthält Campaign ID, Ad Group ID, Keyword Text und Match Type (negativeExact). ASIN-Suchbegriffe werden als Negative Product Targeting Zeilen exportiert. Kann direkt bei Amazon hochgeladen werden.</p>
+        </div>
+    </div>
+
+    <!-- ==================== BID OPTIMIZER ==================== -->
+    <h2 class="tool-header" id="bo">5. Bid Optimizer</h2>
+
+    <div class="section" id="bo-overview">
+        <h3>Übersicht</h3>
+        <p>Optimiert Gebote für bestehende Keywords und Product Targeting basierend auf ROAS-Korridoren. Erstellt ein Update Bulk Sheet das direkt bei Amazon hochgeladen werden kann.</p>
+    </div>
+
+    <div class="section" id="bo-corridors">
+        <h3>ROAS-Korridore</h3>
+        <p>Definiere ROAS-Bereiche und die jeweilige Gebots-Aktion:</p>
+        <div class="card">
+            <div class="card-label">Beispiel-Konfiguration</div>
+            <p>ROAS 0 - 1: Gebot um 50% senken<br>
+            ROAS 1 - 2: Gebot um 20% senken<br>
+            ROAS 2 - 3: Gebot beibehalten (0%)<br>
+            ROAS 3+: Gebot um 10% erhöhen</p>
+        </div>
+        <p>Pro Korridor konfigurierbar:</p>
+        <ul>
+            <li><strong>Änderung (%):</strong> Freie Eingabe, z.B. -90, -30, 0, +15</li>
+            <li><strong>Min./Max. Gebot:</strong> Optionale Grenzen pro Korridor</li>
+            <li><strong>Min. Klicks:</strong> Korridor greift erst ab X Klicks</li>
+            <li><strong>Min. Orders:</strong> Korridor greift erst ab X Bestellungen</li>
+            <li><strong>Pause:</strong> Keywords/Targets in diesem Bereich deaktivieren (State = Paused)</li>
+        </ul>
+        <p>Korridore können mit + / - hinzugefügt oder entfernt werden.</p>
+    </div>
+
+    <div class="section" id="bo-exclusions">
+        <h3>Ausschlüsse</h3>
+        <p>Bestimmte Keywords oder Kampagnen von der Optimierung ausschließen:</p>
+        <ul>
+            <li><strong>Keywords ausschließen:</strong> Kommagetrennt, z.B. "redbull, energy drink". Alle Keywords die diesen Text enthalten werden übersprungen.</li>
+            <li><strong>Kampagnennamen ausschließen:</strong> Kommagetrennt, z.B. "Eigenmarken, Brand". Alle Kampagnen die diesen Text im Namen enthalten werden übersprungen.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="bo-export">
+        <h3>Optimiertes Bulk Sheet</h3>
+        <p>Das exportierte Bulk Sheet enthält:</p>
+        <ul>
+            <li><strong>Keyword ID / Product Targeting ID:</strong> Aus dem Original-Bulk Sheet übernommen</li>
+            <li><strong>Campaign ID + Ad Group ID:</strong> Für eindeutige Zuordnung</li>
+            <li><strong>Neues Gebot:</strong> Basierend auf der Korridor-Berechnung</li>
+            <li><strong>State:</strong> Enabled oder Paused (bei Pause-Korridor)</li>
+        </ul>
+        <p>Die Ergebnistabelle zeigt standardmäßig nur Items mit Änderungen. Über das Dropdown kann auf "Alle anzeigen" gewechselt werden.</p>
+    </div>
+
+    <!-- ==================== NEGATIVES ==================== -->
+    <h2 class="tool-header" id="neg">6. Negatives (Negative Keyword Manager)</h2>
+
+    <div class="section" id="neg-overview">
+        <h3>Übersicht</h3>
+        <p>Der Negative Manager ermöglicht das strategische Einfügen von negativen Keywords und negativen Product Targeting ASINs in bestehende Kampagnen. Im Gegensatz zum Wasted Ad Spend Tool werden hier keine Suchbegriffe analysiert, sondern manuell definierte Negatives in Kampagnen eingefügt.</p>
+    </div>
+
+    <div class="section" id="neg-keywords">
+        <h3>Keywords & ASINs</h3>
+        <p>Negative Keywords und ASINs können für Auto- und manuelle Kampagnen getrennt definiert werden:</p>
+        <ul>
+            <li><strong>Negative Keywords (Auto):</strong> Werden als Negatives in alle erkannten Auto-Kampagnen eingefügt</li>
+            <li><strong>Negative Keywords (Manuell):</strong> Werden nur in manuelle Kampagnen eingefügt, deren Name einen der angegebenen Begriffe enthält (Kampagnenname-Filter)</li>
+            <li><strong>Negative ASINs (Auto):</strong> Werden als Negative Product Targeting in alle Auto-Kampagnen eingefügt</li>
+            <li><strong>Negative ASINs (Manuell):</strong> Werden nur in manuelle Kampagnen eingefügt, deren Name einen der angegebenen Begriffe enthält</li>
+        </ul>
+    </div>
+
+    <div class="section" id="neg-settings">
+        <h3>Einstellungen</h3>
+        <ul>
+            <li><strong>Match Type:</strong> negativeExact, negativePhrase oder Beide (je eine Zeile pro Match Type)</li>
+            <li><strong>Ebene:</strong> Kampagnen-Ebene (Campaign negative keyword) oder Anzeigengruppen-Ebene (Negative keyword mit Ad Group)</li>
+            <li><strong>Manuell auch in Auto:</strong> Wenn aktiviert, werden die manuellen Keywords zusätzlich auch in alle Auto-Kampagnen eingefügt</li>
+        </ul>
+    </div>
+
+    <div class="section" id="neg-export">
+        <h3>Export</h3>
+        <p>Nach dem Generieren wird eine Vorschau aller Negative-Einträge angezeigt. Das exportierte Bulk Sheet enthält Campaign ID, Ad Group ID (bei Anzeigengruppen-Ebene), Keyword Text, Match Type und Entity. Kann direkt bei Amazon hochgeladen werden.</p>
+    </div>
+
+    <!-- ==================== ASIN OPTIMIZER ==================== -->
+    <h2 class="tool-header" id="asin">7. ASIN Optimizer</h2>
+
+    <div class="section" id="asin-overview">
+        <h3>Übersicht</h3>
+        <p>Identifiziert unterperformende beworbene Produkte (ASINs/SKUs) innerhalb von Kampagnen und erstellt ein Bulk Sheet um sie zu deaktivieren. Produkte werden nur in den Kampagnen deaktiviert wo sie nicht performen -- nicht im gesamten Account.</p>
+    </div>
+
+    <div class="section" id="asin-upload">
+        <h3>Bulk Sheet hochladen</h3>
+        <p>Benötigt ein Bulk Sheet mit Performance-Daten. Das Tool liest Product Ad Zeilen und deren Spend/Sales/ROAS.</p>
+    </div>
+
+    <div class="section" id="asin-criteria">
+        <h3>Kriterien</h3>
+        <p>Drei Schwellenwerte bestimmen, ob ein Produkt als unterperformend gilt:</p>
+        <ul>
+            <li><strong>Min. Spend:</strong> Nur Produkte mit mindestens diesem Betrag an Ausgaben werden berücksichtigt.</li>
+            <li><strong>Max. ROAS:</strong> Produkte mit ROAS unter diesem Wert gelten als unterperformend.</li>
+            <li><strong>Min. Klicks:</strong> Nur Produkte mit mindestens dieser Anzahl Klicks werden berücksichtigt.</li>
+        </ul>
+        <p>Alle drei Kriterien müssen erfüllt sein, damit ein Produkt als unterperformend gilt.</p>
+    </div>
+
+    <div class="section" id="asin-views">
+        <h3>Zwei Ansichten</h3>
+        <ul>
+            <li><strong>Accountebene:</strong> ASIN/SKU über alle Kampagnen aggregiert -- zeigt das Gesamtbild der Performance eines Produkts.</li>
+            <li><strong>Kampagnenebene:</strong> ASIN/SKU pro Kampagne einzeln -- hier wird sichtbar in welcher konkreten Kampagne ein Produkt nicht performt. Die Deaktivierung erfolgt auf dieser Ebene.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="asin-exclusions">
+        <h3>Ausschlüsse</h3>
+        <p>ASINs/SKUs können manuell oder per CSV-Upload von der Deaktivierung ausgeschlossen werden. Zusätzlich können Kampagnen über einen Namensfilter übersprungen werden.</p>
+    </div>
+
+    <div class="section" id="asin-export">
+        <h3>Export</h3>
+        <p>Setzt die ausgewählten Product Ads auf "Paused". Benötigt die Ad ID aus dem Bulk Sheet. Funktioniert für Seller (SKU) und Vendor (ASIN).</p>
+    </div>
+
+    <!-- ==================== AUDIT ==================== -->
+    <h2 class="tool-header" id="audit">8. Audit (PPC Audit)</h2>
+
+    <div class="section" id="audit-overview">
+        <h3>Übersicht</h3>
+        <p>Das Audit Tool analysiert die gesamte Amazon PPC Performance eines Accounts auf Basis eines Bulk Sheets. Es schlüsselt die Daten nach Werbeformaten (SP, SB, SD), Kampagnentypen, Platzierungen und Top-Keywords/Suchbegriffen auf.</p>
+        <p>Ziel ist ein schneller Gesamtüberblick über alle Werbeformate hinweg, inklusive Wasted Spend Identifikation.</p>
+    </div>
+
+    <div class="section" id="audit-upload">
+        <h3>Bulk Sheet hochladen</h3>
+        <p>Lade ein Amazon Bulk Sheet (Excel oder CSV) mit Performance-Daten hoch. Das Tool liest automatisch alle Sheets in der Datei:</p>
+        <ul>
+            <li><strong>Kampagnen-Sheets:</strong> Sponsored Products, Sponsored Brands und Sponsored Display Kampagnen-Daten (Kampagnen-, Keyword-, Targeting-Zeilen)</li>
+            <li><strong>Suchbegriff-Sheets:</strong> SP und SB Suchbegriff-Berichte werden automatisch anhand des Sheet-Namens erkannt</li>
+            <li><strong>Platzierungs-Daten:</strong> Gebotsanpassung-Zeilen für die Platzierungsanalyse (nur SP)</li>
+        </ul>
+        <p>Das Werbeformat (SP, SB, SD) wird über die "Product"-Spalte erkannt (z.B. "Sponsored Products", "Sponsored Brands").</p>
+    </div>
+
+    <div class="section" id="audit-total">
+        <h3>Gesamt-Performance</h3>
+        <p>Zeigt die aggregierten Kennzahlen über alle Werbeformate hinweg:</p>
+        <ul>
+            <li><strong>Gesamt Ad Spend:</strong> Summe aller SP + SB + SD Ausgaben</li>
+            <li><strong>Gesamt Sales:</strong> Summe aller zugeordneten Verkäufe</li>
+            <li><strong>ROAS, ACoS, Orders, Klicks, CPC:</strong> Berechnet aus den Kampagnen-Zeilen</li>
+        </ul>
+        <p>Die Daten basieren auf Kampagnen-Zeilen (Entity = Campaign) aus dem Bulk Sheet. Jede Kampagne wird nur einmal gezählt, auch wenn sie in mehreren Sheets vorkommt.</p>
+    </div>
+
+    <div class="section" id="audit-formats">
+        <h3>Werbeformat-Aufschlüsselung</h3>
+        <p>Aufschlüsselung der Performance nach den drei Werbeformaten:</p>
+        <ul>
+            <li><strong>Sponsored Products (SP):</strong> Keyword- und Product-Targeting Anzeigen in den Suchergebnissen und auf Produktseiten</li>
+            <li><strong>Sponsored Brands (SB):</strong> Markenanzeigen mit Logo und mehreren Produkten</li>
+            <li><strong>Sponsored Display (SD):</strong> Display-Anzeigen auf und außerhalb von Amazon</li>
+        </ul>
+        <p>Prozentangaben bei Spend und Sales zeigen den jeweiligen Anteil am Gesamtbudget. So wird sofort sichtbar, welches Format den größten Teil des Budgets beansprucht und welches die meisten Sales generiert.</p>
+    </div>
+
+    <div class="section" id="audit-camptype">
+        <h3>SP Kampagnentyp-Analyse</h3>
+        <p>Zeigt die Aufteilung der Sponsored Products Kampagnen in Auto und Manuell:</p>
+        <ul>
+            <li><strong>Auto vs. Manuell:</strong> Wird über die "Targeting-Typ" Spalte im Bulk Sheet erkannt (Auto/Automatisch vs. Manuell/Manual)</li>
+            <li><strong>Keyword Targeting:</strong> Manuelle Kampagnen mit Keyword-Entities (Exact, Broad, Phrase Match)</li>
+            <li><strong>Product Targeting:</strong> Manuelle Kampagnen mit Product Targeting Entities (ASIN-Targeting)</li>
+        </ul>
+        <p>Die Gesamt-Zeile zeigt die Summe aller SP Kampagnen. Die Unterkategorien (Keyword/Product Targeting) basieren auf den einzelnen Keyword- und Targeting-Zeilen innerhalb der manuellen Kampagnen.</p>
+    </div>
+
+    <div class="section" id="audit-placement">
+        <h3>Platzierungsanalyse</h3>
+        <p>Zeigt die Performance nach Anzeigenplatzierung. Nur verfügbar für Sponsored Products:</p>
+        <ul>
+            <li><strong>Top of Search (first page):</strong> Ganz oben in den Suchergebnissen</li>
+            <li><strong>Rest of Search:</strong> Weitere Positionen in den Suchergebnissen</li>
+            <li><strong>Product Pages:</strong> Anzeigen auf Produktdetailseiten</li>
+            <li><strong>Weitere Platzierungen:</strong> Falls im Bulk Sheet vorhanden</li>
+        </ul>
+        <p>Die Daten stammen aus den Gebotsanpassung-Zeilen (Bid Adjustment) im Bulk Sheet. Diese Zeilen enthalten die Platzierungsinformation mit den zugehörigen Performance-Daten.</p>
+    </div>
+
+    <div class="section" id="audit-top">
+        <h3>Top Placements (Keywords, Suchbegriffe, Wasted Spend)</h3>
+        <p>Drei verschiedene Ansichten für die SP-Analyse:</p>
+        <div class="card">
+            <div class="card-label">Top Keywords/Targets</div>
+            <p>Zeigt die eingebuchten Keywords und Product Targets, sortiert nach Sales. Daten stammen aus den Keyword- und Targeting-Zeilen des Bulk Sheets. Auf Accountebene werden gleiche Keywords über alle Kampagnen aggregiert.</p>
+        </div>
+        <div class="card">
+            <div class="card-label">Top Suchbegriffe</div>
+            <p>Zeigt die echten Kundensuchen aus dem SP Suchbegriff-Bericht, sortiert nach Sales. Das sind die tatsächlichen Suchbegriffe, die Kunden bei Amazon eingegeben haben.</p>
+        </div>
+        <div class="card">
+            <div class="card-label">Wasted Spend</div>
+            <p>Filtert Suchbegriffe mit hohen Klicks aber niedrigem ROAS. Zeigt die größten Geldverschwender auf, die negiert werden sollten.</p>
+        </div>
+        <p>Beide Ebenen verfügbar: <strong>Accountebene</strong> aggregiert gleiche Keywords/Suchbegriffe über alle Kampagnen. <strong>Kampagnenebene</strong> zeigt jede Kampagne einzeln.</p>
+    </div>
+
+    <div class="section" id="audit-sb">
+        <h3>SB Suchbegriffe</h3>
+        <p>Suchbegriffsdaten aus dem Sponsored Brands Suchbegriff-Bericht. Funktioniert analog zur SP-Analyse mit Top Suchbegriffen und Wasted Spend.</p>
+        <div class="card">
+            <div class="card-label">Legacy SB Kampagnen</div>
+            <p>Sponsored Brands Kampagnen, die vor 2022 angelegt wurden (Legacy-Format), haben keine Suchbegriffsdaten. Diese Kampagnen erscheinen nicht in der Suchbegriff-Analyse. Das Tool zeigt einen Hinweis mit der Abdeckung an, wenn die Suchbegriffsdaten weniger als 80% des SB Gesamt-Spends abdecken.</p>
+        </div>
+    </div>
+
+    <div class="section" id="audit-sd">
+        <h3>SD Kampagnen-Performance</h3>
+        <p>Zeigt die Performance aller Sponsored Display Kampagnen mit Spend, Sales, ROAS, ACoS, Orders, Klicks und Impressions.</p>
+        <p>Für Sponsored Display gibt es keinen Suchbegriff-Bericht. Daher werden nur die Kampagnen-Level Daten angezeigt, keine Suchbegriff-Analyse.</p>
+    </div>
+
+    <div class="section" id="audit-wasted">
+        <h3>Wasted Spend Filter</h3>
+        <p>Der Wasted Spend Filter ist in der SP- und SB-Analyse verfügbar und identifiziert Suchbegriffe, die Geld verschwenden:</p>
+        <ul>
+            <li><strong>Max. ROAS:</strong> Suchbegriffe mit einem ROAS unter diesem Schwellenwert gelten als Wasted. Standard: 1.0 (d.h. weniger Sales als Spend). Frei einstellbar.</li>
+            <li><strong>Min. Klicks:</strong> Nur Suchbegriffe mit mindestens dieser Anzahl Klicks werden berücksichtigt. Filtert Suchbegriffe mit zu wenig Daten heraus. Standard: 10 Klicks.</li>
+        </ul>
+        <p>Beide Filter können direkt in der Toolbar angepasst werden. Die Tabelle und der Wasted Spend Wert aktualisieren sich sofort bei Änderung.</p>
+    </div>
+
+    <!-- ==================== ALLGEMEIN ==================== -->
+    <h2 class="tool-header" id="general">Allgemein</h2>
+
+    <div class="section" id="general-bulksheet">
+        <h3>Bulk Sheet Format</h3>
+        <p>Alle Tools erstellen Amazon-kompatible Bulk Sheets mit:</p>
+        <ul>
+            <li><strong>Englische Werte:</strong> Entity, Operation, State, Match Type werden immer auf Englisch generiert (funktioniert auf allen Marketplaces)</li>
+            <li><strong>Sheet Name:</strong> "Sponsored Products Campaigns"</li>
+            <li><strong>26 Spalten:</strong> Product, Entity, Operation, Campaign ID, Ad Group ID, etc.</li>
+        </ul>
+    </div>
+
+    <div class="section" id="general-upload">
+        <h3>Datei hochladen</h3>
+        <p>Alle Tools die ein Bulk Sheet hochladen unterstützen:</p>
+        <ul>
+            <li><strong>Excel (.xlsx, .xls):</strong> Amazon Bulk Sheet Downloads</li>
+            <li><strong>CSV (.csv):</strong> Komma- oder Tab-getrennt</li>
+            <li><strong>Multi-Sheet:</strong> Bei Excel-Dateien mit mehreren Sheets wird automatisch das richtige Sheet erkannt</li>
+            <li><strong>Mehrsprachig:</strong> Deutsche, englische, französische, italienische und spanische Spaltenheader werden erkannt</li>
+        </ul>
+    </div>
+</div>
+
+</body>
+</html>

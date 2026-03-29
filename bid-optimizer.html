@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bid Optimizer - AdsMasters PPC Tools</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="auth-guard.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117; --bg-secondary: #161b22; --bg-hover: #1c2129;
+            --border: #30363d; --text-primary: #e6edf3; --text-secondary: #8b949e;
+            --accent: #3551FF; --accent-hover: #2a41cc;
+            --error: #f85149; --error-bg: #f8514911;
+            --warn: #d29922; --warn-bg: #d2992211;
+            --success: #3fb950; --success-bg: #3fb95011;
+            --bid-up: #3fb950; --bid-down: #f85149; --bid-same: #8b949e;
+        }
+        [data-theme="light"] {
+            --bg-primary: #ffffff; --bg-secondary: #f6f8fa; --bg-hover: #eef1f5;
+            --border: #d0d7de; --text-primary: #1f2328; --text-secondary: #656d76;
+            --accent: #3551FF; --accent-hover: #2a41cc;
+            --error: #cf222e; --error-bg: #cf222e11;
+            --warn: #9a6700; --warn-bg: #9a670011;
+            --success: #1a7f37; --success-bg: #1a7f3711;
+            --bid-up: #1a7f37; --bid-down: #cf222e; --bid-same: #656d76;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+        .topbar-left { display: flex; align-items: center; gap: 32px; }
+        .topbar-logo { font-size: 18px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .topbar-logo span { color: var(--accent); }
+        .topbar-nav { display: flex; gap: 16px; }
+        .topbar-nav a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .topbar-nav a:hover { color: var(--text-primary); }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1; }
+        .theme-toggle:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-logout:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .main { max-width: 1400px; margin: 0 auto; padding: 24px 32px 60px; }
+        .page-header { margin-bottom: 24px; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+        .page-sub { font-size: 14px; color: var(--text-secondary); }
+        .card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 24px; margin-bottom: 24px; }
+        .card-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+        .card-title .step { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+        label { display: block; font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; font-weight: 600; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 13px; }
+        input:focus, select:focus { outline: none; border-color: var(--accent); }
+        .field { margin-bottom: 14px; }
+        .field-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; }
+        .tooltip-icon { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--border); color: var(--text-secondary); font-size: 10px; font-weight: 700; cursor: help; position: relative; flex-shrink: 0; }
+        .tooltip-icon:hover::after { content: attr(data-tip); position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); background: var(--text-primary); color: var(--bg-primary); padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 400; white-space: normal; max-width: 300px; z-index: 50; margin-bottom: 6px; line-height: 1.4; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
+        .upload-zone { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
+        .upload-zone:hover, .upload-zone.drag-over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, var(--bg-primary)); }
+        .upload-zone .icon { font-size: 28px; margin-bottom: 6px; }
+        .upload-zone .label { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+        .upload-zone .hint { font-size: 12px; color: var(--text-secondary); }
+        .upload-zone input { display: none; }
+        .file-info { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; margin-top: 12px; font-size: 13px; }
+        .file-info .name { flex: 1; font-weight: 600; }
+        .file-info .meta { color: var(--text-secondary); }
+        .file-info .remove { color: var(--error); cursor: pointer; font-weight: 700; }
+        .btn { padding: 10px 28px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); }
+        .btn-secondary:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-sm { padding: 4px 10px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary); }
+        .btn-sm:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-row { display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end; flex-wrap: wrap; }
+        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+        .stat-label { font-size: 11px; color: var(--text-secondary); font-weight: 600; margin-bottom: 4px; }
+        .stat-value { font-size: 22px; font-weight: 700; }
+        .stat-value.success { color: var(--success); }
+        .stat-value.warn { color: var(--warn); }
+        .stat-value.danger { color: var(--error); }
+
+        /* ROAS Corridor */
+        .corridor-list { margin-bottom: 16px; }
+        .corridor-header { display: grid; grid-template-columns: 70px 16px 70px 90px 90px 90px 75px 75px 45px 36px; gap: 6px; padding: 0 14px 4px; font-size: 10px; color: var(--text-secondary); font-weight: 600; }
+        .corridor-row { display: grid; grid-template-columns: 70px 16px 70px 90px 90px 90px 75px 75px 45px 36px; gap: 6px; align-items: center; margin-bottom: 8px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+        .corridor-row input[type="number"], .corridor-row input[type="text"] { width: 100%; padding: 6px 8px; font-size: 12px; }
+        .corridor-row select { width: 100%; padding: 6px 8px; font-size: 12px; }
+        .corridor-row .arrow { text-align: center; color: var(--text-secondary); font-size: 13px; }
+        .corridor-row .remove-corridor { background: transparent; border: 1px solid var(--border); color: var(--error); cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 14px; font-weight: 700; }
+        .corridor-row .remove-corridor:hover { background: var(--error-bg); }
+        .corridor-buttons { display: flex; gap: 8px; margin-bottom: 16px; }
+
+        /* Results table */
+        .results-container { overflow-x: auto; max-height: 70vh; }
+        .results-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .results-table th { background: var(--bg-primary); position: sticky; top: 0; padding: 10px; text-align: left; font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid var(--border); white-space: nowrap; cursor: pointer; user-select: none; z-index: 2; }
+        .results-table th:hover { color: var(--text-primary); }
+        .results-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+        .results-table tr:hover td { background: var(--bg-hover); }
+        .results-table tr.selected td { background: var(--success-bg); }
+        .results-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+        .results-table input[type="checkbox"] { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; }
+        .results-table input[type="number"] { width: 70px; padding: 4px 6px; font-size: 11px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 4px; color: var(--text-primary); text-align: right; }
+
+        .table-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .table-controls .left { display: flex; gap: 10px; align-items: center; }
+        .table-controls .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .search-input { width: 200px; padding: 6px 10px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); font-size: 12px; }
+        .search-input:focus { outline: none; border-color: var(--accent); }
+
+        .bid-change { font-weight: 700; font-size: 11px; }
+        .bid-up { color: var(--bid-up); }
+        .bid-down { color: var(--bid-down); }
+        .bid-same { color: var(--bid-same); }
+
+        .error-msg { color: var(--error); font-size: 13px; padding: 8px 12px; border: 1px solid var(--error); border-radius: 6px; margin-bottom: 6px; background: var(--error-bg); }
+        .success-msg { color: var(--success); font-size: 13px; padding: 8px 12px; border: 1px solid var(--success); border-radius: 6px; margin-bottom: 6px; background: var(--success-bg); animation: fadeOut 0.5s ease 3s forwards; }
+        .warn-msg { color: var(--warn); font-size: 13px; padding: 8px 12px; border: 1px solid var(--warn); border-radius: 6px; margin-bottom: 6px; background: var(--warn-bg); }
+        @keyframes fadeOut { to { opacity: 0; } }
+        .msg-container { margin-bottom: 16px; }
+        .hidden { display: none; }
+
+        .pagination { display: flex; justify-content: center; align-items: center; gap: 6px; margin-top: 12px; }
+        .pagination button { padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); background: var(--bg-secondary); color: var(--text-secondary); }
+        .pagination button:hover { color: var(--text-primary); }
+        .pagination button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+        .pagination button:disabled { opacity: 0.4; cursor: default; }
+        .pagination .page-info { font-size: 12px; color: var(--text-secondary); }
+
+        .budget-warnings { margin-bottom: 16px; }
+
+        .filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+        .filter-row select { width: auto; min-width: 140px; padding: 6px 10px; font-size: 12px; }
+
+        @media (max-width: 900px) { .field-row { grid-template-columns: 1fr 1fr; } .corridor-row { grid-template-columns: 60px 16px 60px 1fr 36px; } }
+        @media (max-width: 600px) { .topbar { height: auto; padding: 10px 12px; flex-wrap: wrap; gap: 8px; } .main { padding: 16px; } .field-row { grid-template-columns: 1fr; } .corridor-row { grid-template-columns: 1fr; } .btn-row { flex-direction: column; } .btn-row .btn { width: 100%; text-align: center; } }
+    </style>
+</head>
+<body>
+<script>
+    // Auth loaded via external scripts
+    document.documentElement.setAttribute('data-theme', localStorage.getItem('ppc_theme') || 'light');
+</script>
+
+<div class="topbar">
+    <div class="topbar-left">
+        <a href="dashboard.html" class="topbar-logo">Ads<span>Masters</span> PPC Tools</a>
+        <nav class="topbar-nav">
+            <a href="dashboard.html">Dashboard</a>
+            <a href="campaign-creator.html">Kampagnen Ersteller</a>
+            <a href="keyword-harvesting.html">Keyword Harvesting</a>
+            <a href="wasted-spend.html">Wasted Ad Spend</a>
+            <a href="bid-optimizer.html">Bid Optimizer</a>
+            <a href="negative-manager.html">Negatives</a>
+            <a href="audit.html">Audit</a>
+            <a href="asin-optimizer.html">ASIN Optimizer</a>
+            <a href="help.html">Hilfe</a>
+        </nav>
+    </div>
+    <div class="topbar-right">
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#9790;</button>
+        <button class="btn-logout" onclick="ppcLogout()">Logout</button>
+    </div>
+</div>
+
+<div class="main">
+    <div class="page-header">
+        <h1 class="page-title">Bid Optimizer</h1>
+        <p class="page-sub">Optimiere Gebote basierend auf ROAS-Korridoren — Keywords und Product Targeting</p>
+    </div>
+
+    <!-- STEP 1 -->
+    <div class="card" id="stepUpload">
+        <div class="card-title"><span class="step">1</span> Bulk Sheet hochladen</div>
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+            <div class="icon">&#128203;</div>
+            <div class="label">Bulk Sheet mit Performance-Daten</div>
+            <div class="hint">Excel/CSV mit Kampagnen, Keywords, Geboten, Spend, Sales, Orders</div>
+            <input type="file" id="fileInput" accept=".csv,.xlsx,.xls,.tsv">
+        </div>
+        <div id="fileInfoContainer"></div>
+        <div class="msg-container" id="uploadMsg"></div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="card hidden" id="stepTargets">
+        <div class="card-title"><span class="step">2</span> ROAS-Korridore definieren</div>
+        <p style="font-size:13px;color:var(--text-secondary);margin-bottom:16px;">Definiere ROAS-Bereiche und die jeweilige Gebots-Aktion. Das Tool passt die Gebote entsprechend an.</p>
+
+        <div class="corridor-list" id="corridorList"></div>
+        <div class="corridor-buttons">
+            <button class="btn-sm" onclick="addCorridor()" style="color:var(--success);border-color:var(--success);">+ Korridor hinzufügen</button>
+        </div>
+
+        <div class="field-row" style="grid-template-columns:1fr 1fr 1fr 1fr;">
+            <div class="field">
+                <label><input type="checkbox" id="useMinBid" style="width:14px;height:14px;accent-color:var(--accent);vertical-align:middle;margin-right:4px;" onchange="document.getElementById('minBid').disabled=!this.checked"> Globales Min. Gebot <span class="tooltip-icon" data-tip="Kein Gebot wird unter diesen Wert gesenkt.">?</span></label>
+                <input type="number" id="minBid" value="" step="0.01" min="0.02" placeholder="z.B. 0,05" disabled>
+            </div>
+            <div class="field">
+                <label><input type="checkbox" id="useMaxBid" style="width:14px;height:14px;accent-color:var(--accent);vertical-align:middle;margin-right:4px;" onchange="document.getElementById('maxBid').disabled=!this.checked"> Globales Max. Gebot <span class="tooltip-icon" data-tip="Kein Gebot wird über diesen Wert erhöht.">?</span></label>
+                <input type="number" id="maxBid" value="" step="0.1" min="0.10" placeholder="z.B. 5,00" disabled>
+            </div>
+            <div class="field">
+                <label>Min. Klicks <span class="tooltip-icon" data-tip="Korridor-Regeln gelten nur für Items mit mindestens X Klicks.">?</span></label>
+                <input type="number" id="minClicks" value="10" step="1" min="0">
+            </div>
+            <div class="field">
+                <label>Keywords ohne Klicks <span class="tooltip-icon" data-tip="Wie sollen Keywords ohne Klicks behandelt werden?">?</span></label>
+                <select id="noClicksAction">
+                    <option value="keep">Gebot beibehalten</option>
+                    <option value="reduce20">Gebot um 20% senken</option>
+                    <option value="reduce30">Gebot um 30% senken</option>
+                    <option value="reduce50">Gebot um 50% senken</option>
+                    <option value="min">Auf Min. Gebot setzen</option>
+                </select>
+            </div>
+        </div>
+
+        <div style="margin-top:16px;margin-bottom:16px;">
+            <label>Ausschlüsse <span class="tooltip-icon" data-tip="Keywords oder Kampagnen die NICHT optimiert werden sollen. Kommagetrennt. Z.B. 'redbull, energy drink' oder Kampagnennamen-Muster wie 'Eigenmarken, Brand'.">?</span></label>
+            <div class="field-row" style="grid-template-columns:1fr 1fr;">
+                <div class="field">
+                    <label style="font-size:11px;">Keywords ausschließen (kommagetrennt)</label>
+                    <input type="text" id="excludeKeywords" placeholder="z.B. redbull, energy drink, markenname">
+                </div>
+                <div class="field">
+                    <label style="font-size:11px;">Kampagnennamen ausschließen (kommagetrennt)</label>
+                    <input type="text" id="excludeCampaigns" placeholder="z.B. Eigenmarken, Brand, Single Keyword">
+                </div>
+            </div>
+        </div>
+
+        <div class="btn-row" style="justify-content:flex-start;">
+            <button class="btn btn-primary" onclick="optimizeBids()">Gebote berechnen</button>
+        </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="card hidden" id="stepResults">
+        <div class="card-title"><span class="step">3</span> Optimierungsvorschläge</div>
+        <div class="stats-row" id="statsRow"></div>
+
+        <div class="budget-warnings" id="budgetWarnings"></div>
+
+        <div class="filter-row">
+            <select id="filterType" onchange="currentPage=1;renderTable()">
+                <option value="">Alle Typen</option>
+            </select>
+            <select id="filterDirection" onchange="currentPage=1;renderTable()">
+                <option value="changed">Nur Änderungen</option>
+                <option value="">Alle anzeigen</option>
+                <option value="up">Nur Erhöhungen</option>
+                <option value="down">Nur Senkungen</option>
+                <option value="pause">Nur Pausiert</option>
+                <option value="same">Keine Änderung</option>
+            </select>
+            <select id="filterCampaign" onchange="currentPage=1;renderTable()">
+                <option value="">Alle Kampagnen</option>
+            </select>
+        </div>
+
+        <div class="table-controls">
+            <div class="left">
+                <input type="text" class="search-input" id="searchInput" placeholder="Keyword filtern..." oninput="currentPage=1;renderTable()">
+                <span style="font-size:12px;color:var(--text-secondary);" id="tableCount"></span>
+            </div>
+            <div class="right">
+                <button class="btn-sm" onclick="selectAll()">Alle</button>
+                <button class="btn-sm" onclick="deselectAll()">Keine</button>
+                <button class="btn-sm" onclick="selectFiltered()">Gefilterte</button>
+                <button class="btn-sm" onclick="selectOnlyChanges()">Nur Änderungen</button>
+                <button class="btn-sm" onclick="exportAnalysis()">Analyse exportieren</button>
+            </div>
+        </div>
+
+        <div class="results-container">
+            <table class="results-table" id="resultsTable">
+                <thead id="tableHead"></thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+        <div class="pagination" id="pagination"></div>
+        <div class="msg-container" id="resultMsg" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="card hidden" id="stepExport">
+        <div class="card-title"><span class="step">4</span> Optimiertes Bulk Sheet erstellen</div>
+        <div class="btn-row" style="justify-content:flex-start;margin-top:0;">
+            <button class="btn btn-primary" onclick="exportBulkSheet()">Optimiertes Bulk Sheet erstellen</button>
+        </div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;" id="selectedCount">0 Anpassungen ausgewählt</div>
+    </div>
+</div>
+
+<script>
+// --- Theme ---
+function toggleTheme() {
+    const c = document.documentElement.getAttribute('data-theme') || 'light';
+    const n = c === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('ppc_theme', n);
+    document.documentElement.setAttribute('data-theme', n);
+    document.getElementById('themeToggle').innerHTML = n === 'dark' ? '&#9788;' : '&#9790;';
+}
+document.getElementById('themeToggle').innerHTML = (localStorage.getItem('ppc_theme') || 'light') === 'dark' ? '&#9788;' : '&#9790;';
+
+// --- State ---
+let rawItems = [];
+let optimizedItems = [];
+let selectedItems = new Set();
+let campaignTypes = {};
+let campaignBudgets = {};
+let sortCol = 'changePct';
+let sortDir = 'desc';
+let currentPage = 1;
+const PAGE_SIZE = 100;
+let detectedCurrency = 'EUR';
+const CURRENCY_MAP = { '\u20AC': 'EUR', '$': 'USD', '\u00A3': 'GBP' };
+
+// --- ROAS Corridors ---
+let corridors = [
+    { from: 0, to: 1, pct: -50, minBid: '', maxBid: '', pause: false, minClicks: '', minOrders: '' },
+    { from: 1, to: 2, pct: -20, minBid: '', maxBid: '', pause: false, minClicks: '', minOrders: '' },
+    { from: 2, to: 3, pct: 0, minBid: '', maxBid: '', pause: false, minClicks: '', minOrders: '' },
+    { from: 3, to: '', pct: 0, minBid: '', maxBid: '', pause: false, minClicks: '', minOrders: '' }
+];
+
+function renderCorridors() {
+    const list = document.getElementById('corridorList');
+    list.innerHTML = '<div class="corridor-header">' +
+        '<span>ROAS von</span><span></span><span>ROAS bis</span><span>Änderung (%)</span><span>Min. Gebot</span><span>Max. Gebot</span><span>Min. Klicks</span><span>Min. Orders</span><span>Pause</span><span></span>' +
+        '</div>' +
+        corridors.map((c, i) => {
+        const pauseChecked = c.pause ? ' checked' : '';
+        const inputDisabled = c.pause ? ' disabled style="opacity:0.4;text-align:center;"' : ' style="text-align:center;"';
+        return '<div class="corridor-row">' +
+            '<input type="number" value="' + (c.from || '') + '" step="0.1" min="0" onchange="corridors[' + i + '].from=this.value?parseFloat(this.value):0;syncCorridorBounds()">' +
+            '<span class="arrow">–</span>' +
+            '<input type="number" value="' + (c.to || '') + '" step="0.1" min="0" placeholder="leer = offen" onchange="corridors[' + i + '].to=this.value?parseFloat(this.value):\'\';syncCorridorBounds()">' +
+            '<input type="number" value="' + c.pct + '" step="5" onchange="corridors[' + i + '].pct=parseFloat(this.value)||0"' + inputDisabled + ' placeholder="z.B. -30">' +
+            '<input type="number" value="' + (c.minBid || '') + '" step="0.01" min="0" placeholder="optional"' + (c.pause ? ' disabled style="opacity:0.4"' : '') + ' onchange="corridors[' + i + '].minBid=this.value?parseFloat(this.value):\'\'">' +
+            '<input type="number" value="' + (c.maxBid || '') + '" step="0.01" min="0" placeholder="optional"' + (c.pause ? ' disabled style="opacity:0.4"' : '') + ' onchange="corridors[' + i + '].maxBid=this.value?parseFloat(this.value):\'\'">' +
+            '<input type="number" value="' + (c.minClicks || '') + '" step="1" min="0" placeholder="opt." onchange="corridors[' + i + '].minClicks=this.value?parseInt(this.value):\'\'">' +
+            '<input type="number" value="' + (c.minOrders || '') + '" step="1" min="0" placeholder="opt." onchange="corridors[' + i + '].minOrders=this.value?parseInt(this.value):\'\'">' +
+            '<label style="display:flex;align-items:center;justify-content:center;margin:0;cursor:pointer;" title="Keywords/Targets deaktivieren"><input type="checkbox"' + pauseChecked + ' style="width:16px;height:16px;accent-color:var(--error);cursor:pointer;" onchange="corridors[' + i + '].pause=this.checked;renderCorridors()"></label>' +
+            '<button class="remove-corridor" onclick="removeCorridor(' + i + ')" title="Korridor entfernen">&times;</button>' +
+            '</div>';
+    }).join('');
+}
+
+function syncCorridorBounds() {
+    // Auto-adjust: each corridor's from = previous corridor's to
+    for (let i = 1; i < corridors.length; i++) {
+        if (corridors[i - 1].to !== '') corridors[i].from = corridors[i - 1].to;
+    }
+    renderCorridors();
+}
+
+function addCorridor() {
+    const last = corridors[corridors.length - 1];
+    const newFrom = last.from || 0;
+    const newTo = newFrom + 1;
+    last.from = newTo;
+    corridors.splice(corridors.length - 1, 0, { from: newFrom, to: newTo, pct: 0, minBid: '', maxBid: '', pause: false, minClicks: '', minOrders: '' });
+    renderCorridors();
+}
+
+function removeCorridor(idx) {
+    if (corridors.length <= 2) return; // Keep at least 2 corridors
+    corridors.splice(idx, 1);
+    // Fix bounds
+    corridors[corridors.length - 1].to = '';
+    for (let i = 1; i < corridors.length; i++) {
+        corridors[i].from = corridors[i - 1].to || corridors[i].from;
+    }
+    renderCorridors();
+}
+
+function formatCurrency(v) { return v.toLocaleString('de-DE', { style: 'currency', currency: detectedCurrency }); }
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function parseNum(v) { if (v == null || v === '') return 0; return parseFloat(String(v).replace(/[^0-9.,\-]/g, '').replace(',', '.')) || 0; }
+
+// --- Column detection ---
+const COL = {
+    campaignId: ['campaign id', 'kampagnen-id'],
+    adgroupId: ['ad group id', 'anzeigengruppen-id'],
+    keywordId: ['keyword id', 'keyword-id'],
+    ptId: ['product targeting id', 'produkt-targeting-id'],
+    campaign: ['kampagnenname (nur zu informationszwecken)', 'campaign name (informational only)', 'campaign name', 'kampagnenname'],
+    budget: ['daily budget', 'tagesbudget', 'budget quotidien', 'presupuesto diario', 'budget giornaliero'],
+    adgroup: ['name der anzeigengruppe (nur zu informationszwecken)', 'ad group name (informational only)', 'ad group name', 'name der anzeigengruppe'],
+    entity: ['entity', 'entität', 'entité', 'entidad', 'entità'],
+    keyword: ['keyword text', 'keyword-text', 'texte du mot-clé', 'keyword'],
+    matchtype: ['match type', 'übereinstimmungstyp'],
+    bid: ['bid', 'gebot', 'standardgebot für die anzeigengruppe (nur zu informationszwecken)'],
+    impressions: ['impressions', 'impressionen'],
+    clicks: ['clicks', 'klicks', 'clics'],
+    spend: ['spend', 'ausgaben', 'cost', 'dépenses'],
+    sales: ['7 day total sales', '7-day total sales', 'total sales', 'sales', 'umsatz', 'verkäufe'],
+    orders: ['7 day total orders', '7-day total orders', 'total orders', 'orders', 'bestellungen'],
+    targeting: ['targeting type', 'targeting-typ', 'type de ciblage'],
+    ptExpr: ['product targeting expression', 'ausdruck für produkt-targeting'],
+    state: ['state', 'zustand', 'état']
+};
+
+function findCol(headers, key) {
+    const aliases = COL[key] || [];
+    const lower = headers.map(h => h.toLowerCase().trim());
+    for (const a of aliases) { const i = lower.indexOf(a); if (i !== -1) return i; }
+    for (const a of aliases) { const i = lower.findIndex(h => h.includes(a)); if (i !== -1) return i; }
+    return -1;
+}
+
+// --- Detect campaign type ---
+function detectType(campName) {
+    const l = campName.toLowerCase();
+    if (l.includes('auto')) return 'Auto';
+    if (l.includes('brand') || l.includes('eigenmarke')) return 'Brand';
+    if (l.includes('competitor') || l.includes('wettbewerb')) return 'Competitor';
+    if (l.includes('product targeting') || l.includes('produktausrichtung') || l.includes('pt:') || l.includes('pt ')) return 'Product Targeting';
+    if (l.includes('harvest')) return 'Harvest';
+    if (l.includes('single') || l.includes('kw "')) return 'Single Keyword';
+    if (l.includes('generic') || l.includes('generisch')) return 'Generic';
+    if (l.includes('sd:') || l.includes('sponsored display')) return 'Sponsored Display';
+    return 'Sonstige';
+}
+
+// --- Upload ---
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) handleUpload(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', e => { if (e.target.files[0]) handleUpload(e.target.files[0]); });
+
+function handleUpload(file) {
+    const msgEl = document.getElementById('uploadMsg');
+    msgEl.innerHTML = '';
+
+    function processSheet(rows) {
+        if (rows.length < 2) return;
+        let headerIdx = 0;
+        for (let i = 0; i < Math.min(rows.length, 10); i++) {
+            const row = rows[i].map(c => String(c).toLowerCase().trim());
+            if (row.some(c => COL.entity.some(a => c.includes(a))) || row.some(c => COL.keyword.some(a => c.includes(a)))) { headerIdx = i; break; }
+        }
+        const headers = rows[headerIdx].map(c => String(c));
+        const cm = {};
+        for (const key of Object.keys(COL)) cm[key] = findCol(headers, key);
+
+        headers.forEach(h => { for (const [sym, code] of Object.entries(CURRENCY_MAP)) { if (h.includes(sym)) detectedCurrency = code; } });
+
+        for (let i = headerIdx + 1; i < rows.length; i++) {
+            const r = rows[i];
+            if (!r || r.length < 3) continue;
+            const entity = cm.entity !== -1 ? String(r[cm.entity] || '').toLowerCase().trim() : '';
+            const campaign = cm.campaign !== -1 ? String(r[cm.campaign] || '').trim() : '';
+
+            // Extract campaign budgets
+            const isCampaignRow = entity.includes('kampagne') || entity.includes('campaign') || entity.includes('campagne') || entity.includes('campana') || entity.includes('campagna');
+            if (isCampaignRow && campaign && cm.budget !== -1) {
+                const budgetVal = parseNum(r[cm.budget]);
+                if (budgetVal > 0) campaignBudgets[campaign] = budgetVal;
+            }
+
+            const isKeyword = entity.includes('keyword') || entity.includes('mot-cl') || entity.includes('palabra') || entity.includes('parola');
+            const isPT = entity.includes('targeting') || entity.includes('ciblage') || entity.includes('segmentacion');
+            if (!isKeyword && !isPT) continue;
+            if (entity.includes('negat')) continue;
+
+            const campaignId = cm.campaignId !== -1 ? String(r[cm.campaignId] || '').trim() : '';
+            const adgroupId = cm.adgroupId !== -1 ? String(r[cm.adgroupId] || '').trim() : '';
+            const keywordId = cm.keywordId !== -1 ? String(r[cm.keywordId] || '').trim() : '';
+            const ptId = cm.ptId !== -1 ? String(r[cm.ptId] || '').trim() : '';
+            const adgroup = cm.adgroup !== -1 ? String(r[cm.adgroup] || '').trim() : '';
+            const keyword = cm.keyword !== -1 ? String(r[cm.keyword] || '').trim() : '';
+            const ptExpr = cm.ptExpr !== -1 ? String(r[cm.ptExpr] || '').trim() : '';
+            const matchtype = cm.matchtype !== -1 ? String(r[cm.matchtype] || '').trim() : '';
+            const currentBid = parseNum(r[cm.bid]);
+            const impressions = parseNum(r[cm.impressions]);
+            const clicks = parseNum(r[cm.clicks]);
+            const spend = parseNum(r[cm.spend]);
+            const sales = cm.sales !== -1 ? parseNum(r[cm.sales]) : 0;
+            const orders = cm.orders !== -1 ? parseNum(r[cm.orders]) : 0;
+
+            const label = isKeyword ? keyword : ptExpr;
+            if (!label && !keyword) continue;
+            if (currentBid <= 0) continue;
+
+            rawItems.push({
+                campaign, campaignId, adgroup, adgroupId, keywordId, ptId,
+                label: label || keyword, matchtype,
+                type: isKeyword ? 'Keyword' : 'Product Targeting',
+                campType: detectType(campaign),
+                currentBid, impressions, clicks, spend, sales, orders,
+                cpc: clicks > 0 ? spend / clicks : 0,
+                acos: sales > 0 ? (spend / sales * 100) : (orders === 0 ? Infinity : 0),
+                roas: spend > 0 ? sales / spend : 0,
+                convRate: clicks > 0 ? (orders / clicks * 100) : 0,
+                rpc: clicks > 0 ? sales / clicks : 0
+            });
+        }
+    }
+
+    rawItems = [];
+
+    if (file.name.match(/\.(xlsx|xls)$/i)) {
+        const reader = new FileReader();
+        reader.onload = evt => {
+            const wb = XLSX.read(new Uint8Array(evt.target.result), { type: 'array' });
+            wb.SheetNames.forEach(sn => {
+                const rows = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, defval: '' });
+                processSheet(rows);
+            });
+            finishUpload(file);
+        };
+        reader.readAsArrayBuffer(file);
+    } else {
+        const reader = new FileReader();
+        reader.onload = evt => {
+            const sep = evt.target.result.includes('\t') ? '\t' : ',';
+            const rows = evt.target.result.split(/\r?\n/).filter(l => l.trim()).map(l => {
+                const res = []; let cur = '', q = false;
+                for (let i = 0; i < l.length; i++) { if (l[i]==='"'){q=!q;continue;} if (l[i]===sep&&!q){res.push(cur.trim());cur='';continue;} cur+=l[i]; }
+                res.push(cur.trim()); return res;
+            });
+            processSheet(rows);
+            finishUpload(file);
+        };
+        reader.readAsText(file);
+    }
+}
+
+function finishUpload(file) {
+    const msgEl = document.getElementById('uploadMsg');
+    if (rawItems.length === 0) {
+        msgEl.innerHTML = '<div class="error-msg">Keine Keywords oder Product Targeting Eintraege mit Geboten gefunden.</div>';
+        return;
+    }
+
+    // Count campaign types
+    campaignTypes = {};
+    rawItems.forEach(item => {
+        if (!campaignTypes[item.campType]) campaignTypes[item.campType] = { count: 0, spend: 0, sales: 0 };
+        campaignTypes[item.campType].count++;
+        campaignTypes[item.campType].spend += item.spend;
+        campaignTypes[item.campType].sales += item.sales;
+    });
+
+    document.getElementById('fileInfoContainer').innerHTML = '<div class="file-info"><span class="name">' + escapeHtml(file.name) + '</span><span class="meta">' + rawItems.length + ' Keywords/Targets, ' + Object.keys(campaignTypes).length + ' Kampagnentypen</span><span class="remove" onclick="clearUpload()">&times;</span></div>';
+
+    renderCorridors();
+    document.getElementById('stepTargets').classList.remove('hidden');
+    document.getElementById('stepResults').classList.add('hidden');
+    document.getElementById('stepExport').classList.add('hidden');
+}
+
+function clearUpload() {
+    rawItems = [];
+    optimizedItems = [];
+    campaignTypes = {};
+    campaignBudgets = {};
+    document.getElementById('fileInfoContainer').innerHTML = '';
+    document.getElementById('stepTargets').classList.add('hidden');
+    document.getElementById('stepResults').classList.add('hidden');
+    document.getElementById('stepExport').classList.add('hidden');
+    fileInput.value = '';
+}
+
+// --- Optimization ---
+function optimizeBids() {
+    const useMinBid = document.getElementById('useMinBid').checked;
+    const useMaxBid = document.getElementById('useMaxBid').checked;
+    const minBid = useMinBid ? (parseFloat(document.getElementById('minBid').value) || 0) : 0;
+    const maxBid = useMaxBid ? (parseFloat(document.getElementById('maxBid').value) || Infinity) : Infinity;
+    const minClicks = parseInt(document.getElementById('minClicks').value) || 0;
+    const noClicksAction = document.getElementById('noClicksAction').value;
+
+    // Parse exclusions
+    const excludeKwRaw = document.getElementById('excludeKeywords').value.trim();
+    const excludeCampRaw = document.getElementById('excludeCampaigns').value.trim();
+    const excludeKws = excludeKwRaw ? excludeKwRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+    const excludeCamps = excludeCampRaw ? excludeCampRaw.split(',').map(s => s.trim().toLowerCase()).filter(Boolean) : [];
+
+    optimizedItems = rawItems.map(item => {
+        let newBid = item.currentBid;
+        let reason = '';
+
+        // Check exclusions
+        const kwLower = item.label.toLowerCase();
+        const campLower = item.campaign.toLowerCase();
+        const isExcluded = excludeKws.some(ex => kwLower.includes(ex)) || excludeCamps.some(ex => campLower.includes(ex));
+
+        if (isExcluded) {
+            reason = 'Ausgeschlossen';
+        } else if (item.clicks === 0) {
+            switch (noClicksAction) {
+                case 'reduce20': newBid = item.currentBid * 0.8; reason = 'Keine Klicks (−20%)'; break;
+                case 'reduce30': newBid = item.currentBid * 0.7; reason = 'Keine Klicks (−30%)'; break;
+                case 'reduce50': newBid = item.currentBid * 0.5; reason = 'Keine Klicks (−50%)'; break;
+                case 'min': newBid = minBid; reason = 'Keine Klicks (Min.)'; break;
+                case 'keep': default: newBid = item.currentBid; reason = 'Keine Klicks (beibehalten)'; break;
+            }
+        } else if (item.clicks < minClicks) {
+            reason = 'Zu wenig Daten (' + item.clicks + ' Klicks)';
+        } else {
+            let roas = 0;
+            if (item.orders > 0 && item.spend > 0) roas = item.sales / item.spend;
+
+            let matchedCorridor = null;
+            for (const c of corridors) {
+                if (roas >= c.from && (c.to === '' || c.to === undefined ? true : roas < c.to)) {
+                    matchedCorridor = c;
+                    break;
+                }
+            }
+            if (!matchedCorridor && corridors.length > 0) {
+                matchedCorridor = corridors[corridors.length - 1];
+            }
+
+            if (matchedCorridor) {
+                // Check corridor-specific min clicks/orders thresholds
+                const cMinClicks = matchedCorridor.minClicks !== '' ? matchedCorridor.minClicks : 0;
+                const cMinOrders = matchedCorridor.minOrders !== '' ? matchedCorridor.minOrders : 0;
+                if ((cMinClicks > 0 && item.clicks < cMinClicks) || (cMinOrders > 0 && item.orders < cMinOrders)) {
+                    reason = 'ROAS ' + roas.toFixed(2) + ' → Schwelle nicht erreicht';
+                } else if (matchedCorridor.pause) {
+                    reason = 'ROAS ' + roas.toFixed(2) + ' → Pausiert';
+                } else {
+                    const pct = matchedCorridor.pct;
+                    const factor = 1 + (pct / 100);
+                    newBid = item.currentBid * factor;
+
+                    const cMin = matchedCorridor.minBid !== '' ? matchedCorridor.minBid : minBid;
+                    const cMax = matchedCorridor.maxBid !== '' ? matchedCorridor.maxBid : maxBid;
+                    newBid = Math.max(cMin, Math.min(cMax, newBid));
+
+                    const pctLabel = pct === 0 ? '0%' : (pct > 0 ? '+' : '') + pct + '%';
+                    reason = 'ROAS ' + roas.toFixed(2) + ' → ' + pctLabel;
+                }
+            }
+        }
+
+        // Global clamp – nur wenn aktiviert
+        newBid = Math.round(newBid * 100) / 100;
+        if (useMaxBid && maxBid > 0) newBid = Math.min(maxBid, newBid);
+        if (useMinBid && minBid > 0 && newBid < minBid) {
+            newBid = Math.min(minBid, item.currentBid);
+        }
+
+        const change = newBid - item.currentBid;
+        const changePct = item.currentBid > 0 ? (change / item.currentBid * 100) : 0;
+        const isPaused = reason.includes('Pausiert');
+        const direction = isExcluded ? 'same' : isPaused ? 'pause' : (Math.abs(changePct) < 1 ? 'same' : (change > 0 ? 'up' : 'down'));
+
+        return { ...item, newBid, change, changePct, direction, reason, excluded: isExcluded, paused: isPaused };
+    });
+
+    // Select all with changes by default
+    selectedItems.clear();
+    optimizedItems.forEach((item, i) => { if (item.direction !== 'same') selectedItems.add(i); });
+
+    currentPage = 1;
+    sortCol = 'changePct';
+    sortDir = 'desc';
+
+    renderStats();
+    renderBudgetWarnings();
+    renderFilters();
+    // Standardmäßig nur Änderungen anzeigen
+    document.getElementById('filterDirection').value = 'changed';
+    renderTable();
+    document.getElementById('stepResults').classList.remove('hidden');
+    document.getElementById('stepExport').classList.remove('hidden');
+    document.getElementById('stepResults').scrollIntoView({ behavior: 'smooth' });
+}
+
+// --- Stats ---
+function renderStats() {
+    const ups = optimizedItems.filter(i => i.direction === 'up');
+    const downs = optimizedItems.filter(i => i.direction === 'down');
+    const pauses = optimizedItems.filter(i => i.direction === 'pause');
+    const sames = optimizedItems.filter(i => i.direction === 'same');
+    const avgChange = optimizedItems.length > 0 ? (optimizedItems.reduce((s, i) => s + i.changePct, 0) / optimizedItems.length).toFixed(1) : 0;
+
+    document.getElementById('statsRow').innerHTML =
+        '<div class="stat-card"><div class="stat-label">Gesamt Keywords/Targets</div><div class="stat-value">' + optimizedItems.length + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Gebote erhöhen</div><div class="stat-value success">' + ups.length + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Gebote senken</div><div class="stat-value danger">' + downs.length + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Pausieren</div><div class="stat-value warn">' + pauses.length + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Keine Änderung</div><div class="stat-value">' + sames.length + '</div></div>' +
+        '<div class="stat-card"><div class="stat-label">Ø Änderung</div><div class="stat-value ' + (parseFloat(avgChange) > 0 ? 'success' : parseFloat(avgChange) < 0 ? 'danger' : '') + '">' + avgChange + '%</div></div>';
+}
+
+// --- Budget Check ---
+function renderBudgetWarnings() {
+    const warnings = [];
+    const campData = {};
+    optimizedItems.forEach(item => {
+        if (!campData[item.campaign]) campData[item.campaign] = { totalNewBidSpend: 0, totalOldBidSpend: 0, budget: campaignBudgets[item.campaign] || 0 };
+        const ratio = item.currentBid > 0 ? item.newBid / item.currentBid : 1;
+        const estDailySpend = item.spend * ratio;
+        campData[item.campaign].totalNewBidSpend += estDailySpend;
+        campData[item.campaign].totalOldBidSpend += item.spend;
+    });
+
+    Object.entries(campData).forEach(([campName, data]) => {
+        if (data.budget > 0 && data.totalNewBidSpend > data.budget * 30) {
+            const dailyEst = data.totalNewBidSpend / 30;
+            if (dailyEst > data.budget * 1.5) {
+                warnings.push('Kampagne "' + campName + '": Geschätzter Tages-Spend (' + formatCurrency(dailyEst) + ') könnte das Tagesbudget (' + formatCurrency(data.budget) + ') übersteigen.');
+            }
+        }
+    });
+
+    document.getElementById('budgetWarnings').innerHTML = warnings.map(w => '<div class="warn-msg">' + w + '</div>').join('');
+}
+
+// --- Filters ---
+function renderFilters() {
+    const types = [...new Set(optimizedItems.map(i => i.campType))].sort();
+    document.getElementById('filterType').innerHTML = '<option value="">Alle Typen</option>' + types.map(t => '<option value="' + escapeHtml(t) + '">' + escapeHtml(t) + '</option>').join('');
+
+    const campaigns = [...new Set(optimizedItems.map(i => i.campaign))].sort();
+    document.getElementById('filterCampaign').innerHTML = '<option value="">Alle Kampagnen (' + campaigns.length + ')</option>' + campaigns.map(c => '<option value="' + escapeHtml(c) + '">' + escapeHtml(c) + '</option>').join('');
+}
+
+// --- Table ---
+function getFilteredData() {
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+    const typeFilter = document.getElementById('filterType').value;
+    const dirFilter = document.getElementById('filterDirection').value;
+    const campFilter = document.getElementById('filterCampaign').value;
+
+    return optimizedItems.map((item, idx) => ({ ...item, idx })).filter(item => {
+        if (search && !item.label.toLowerCase().includes(search) && !item.campaign.toLowerCase().includes(search)) return false;
+        if (typeFilter && item.campType !== typeFilter) return false;
+        if (dirFilter === 'changed' && item.direction === 'same') return false;
+        else if (dirFilter && dirFilter !== 'changed' && item.direction !== dirFilter) return false;
+        if (campFilter && item.campaign !== campFilter) return false;
+        return true;
+    });
+}
+
+function renderTable() {
+    const data = getFilteredData();
+
+    // Sort
+    data.sort((a, b) => {
+        let va = a[sortCol], vb = b[sortCol];
+        if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb || '').toLowerCase(); }
+        return sortDir === 'asc' ? (va < vb ? -1 : va > vb ? 1 : 0) : (va > vb ? -1 : va < vb ? 1 : 0);
+    });
+
+    const totalPages = Math.ceil(data.length / PAGE_SIZE);
+    if (currentPage > totalPages) currentPage = totalPages || 1;
+    const pageData = data.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+    const cols = [
+        { id: 'select', label: '' },
+        { id: 'label', label: 'Keyword / Target', sort: true },
+        { id: 'campType', label: 'Typ', sort: true },
+        { id: 'campaign', label: 'Kampagne', sort: true },
+        { id: 'currentBid', label: 'Aktuell', sort: true, num: true },
+        { id: 'newBid', label: 'Neu', sort: true, num: true },
+        { id: 'changePct', label: 'Änderung', sort: true, num: true },
+        { id: 'acos', label: 'ACoS', sort: true, num: true },
+        { id: 'roas', label: 'ROAS', sort: true, num: true },
+        { id: 'orders', label: 'Orders', sort: true, num: true },
+        { id: 'clicks', label: 'Klicks', sort: true, num: true },
+        { id: 'spend', label: 'Spend', sort: true, num: true },
+        { id: 'reason', label: 'Korridor / Grund', sort: true }
+    ];
+
+    document.getElementById('tableHead').innerHTML = '<tr>' + cols.map(c => {
+        const arrow = c.id === sortCol ? (sortDir === 'asc' ? ' &#9650;' : ' &#9660;') : '';
+        const click = c.sort ? ' onclick="sortTable(\'' + c.id + '\')"' : '';
+        return '<th' + click + '>' + c.label + arrow + '</th>';
+    }).join('') + '</tr>';
+
+    document.getElementById('tableBody').innerHTML = pageData.map(row => {
+        const checked = selectedItems.has(row.idx) ? 'checked' : '';
+        const cls = selectedItems.has(row.idx) ? ' class="selected"' : '';
+        const dirClass = row.direction === 'up' ? 'bid-up' : row.direction === 'down' ? 'bid-down' : row.direction === 'pause' ? 'bid-down' : 'bid-same';
+        const arrow = row.direction === 'up' ? '&#9650; ' : row.direction === 'down' ? '&#9660; ' : row.direction === 'pause' ? '&#10074;&#10074; ' : '';
+        const changeTxt = Math.abs(row.changePct) < 1 ? '\u2013' : (row.changePct > 0 ? '+' : '') + row.changePct.toFixed(1) + '%';
+        const acosDisplay = row.acos === Infinity ? '\u2013' : row.acos.toFixed(1) + '%';
+        let acosColor = 'var(--text-primary)';
+        if (row.acos !== Infinity && row.acos > 0) {
+            if (row.acos > 50) acosColor = 'var(--error)';
+            else if (row.acos > 30) acosColor = 'var(--warn)';
+            else if (row.acos <= 20) acosColor = 'var(--success)';
+        }
+
+        // ROAS color coding
+        const roasDisplay = row.roas.toFixed(2);
+        let roasColor = 'var(--text-primary)';
+        if (row.roas === 0) roasColor = 'var(--error)';
+        else if (row.roas < 1) roasColor = '#e5832a';  // orange
+        else if (row.roas < 2) roasColor = 'var(--warn)';
+        else roasColor = 'var(--success)';
+
+        return '<tr' + cls + '>' +
+            '<td><input type="checkbox" ' + checked + ' onchange="toggleItem(' + row.idx + ',this.checked)"></td>' +
+            '<td>' + escapeHtml(row.label) + '</td>' +
+            '<td><span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--bg-hover);color:var(--text-secondary)">' + escapeHtml(row.campType) + '</span></td>' +
+            '<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;" title="' + escapeHtml(row.campaign) + '">' + escapeHtml(row.campaign) + '</td>' +
+            '<td class="num">' + formatCurrency(row.currentBid) + '</td>' +
+            '<td class="num"><input type="number" value="' + row.newBid.toFixed(2) + '" step="0.01" min="0.02" onchange="optimizedItems[' + row.idx + '].newBid=parseFloat(this.value);recalcChange(' + row.idx + ');"></td>' +
+            '<td class="num"><span class="bid-change ' + dirClass + '">' + arrow + changeTxt + '</span></td>' +
+            '<td class="num" style="color:' + acosColor + '">' + acosDisplay + '</td>' +
+            '<td class="num" style="color:' + roasColor + '">' + roasDisplay + '</td>' +
+            '<td class="num">' + row.orders + '</td>' +
+            '<td class="num">' + row.clicks.toLocaleString('de-DE') + '</td>' +
+            '<td class="num">' + formatCurrency(row.spend) + '</td>' +
+            '<td style="font-size:11px;color:var(--text-secondary)">' + escapeHtml(row.reason) + '</td>' +
+            '</tr>';
+    }).join('');
+
+    document.getElementById('tableCount').textContent = data.length + ' von ' + optimizedItems.length;
+    updateSelectedCount();
+    renderPagination(totalPages);
+}
+
+function recalcChange(idx) {
+    const item = optimizedItems[idx];
+    item.change = item.newBid - item.currentBid;
+    item.changePct = item.currentBid > 0 ? (item.change / item.currentBid * 100) : 0;
+    item.direction = Math.abs(item.changePct) < 1 ? 'same' : (item.change > 0 ? 'up' : 'down');
+    renderTable();
+}
+
+function renderPagination(totalPages) {
+    const c = document.getElementById('pagination');
+    if (totalPages <= 1) { c.innerHTML = ''; return; }
+    let h = '<button ' + (currentPage <= 1 ? 'disabled' : '') + ' onclick="currentPage--;renderTable();">&laquo;</button>';
+    const s = Math.max(1, currentPage - 3), e = Math.min(totalPages, currentPage + 3);
+    if (s > 1) h += '<button onclick="currentPage=1;renderTable();">1</button><span class="page-info">...</span>';
+    for (let i = s; i <= e; i++) h += '<button class="' + (i === currentPage ? 'active' : '') + '" onclick="currentPage=' + i + ';renderTable();">' + i + '</button>';
+    if (e < totalPages) h += '<span class="page-info">...</span><button onclick="currentPage=' + totalPages + ';renderTable();">' + totalPages + '</button>';
+    h += '<button ' + (currentPage >= totalPages ? 'disabled' : '') + ' onclick="currentPage++;renderTable();">&raquo;</button>';
+    h += '<span class="page-info">Seite ' + currentPage + ' von ' + totalPages + '</span>';
+    c.innerHTML = h;
+}
+
+function sortTable(col) {
+    if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    else { sortCol = col; sortDir = col === 'label' || col === 'campaign' || col === 'campType' || col === 'reason' ? 'asc' : 'desc'; }
+    renderTable();
+}
+
+function toggleItem(idx, checked) { if (checked) selectedItems.add(idx); else selectedItems.delete(idx); updateSelectedCount(); }
+function selectAll() { optimizedItems.forEach((_, i) => selectedItems.add(i)); renderTable(); }
+function deselectAll() { selectedItems.clear(); renderTable(); }
+function selectFiltered() { getFilteredData().forEach(r => selectedItems.add(r.idx)); renderTable(); }
+function selectOnlyChanges() { selectedItems.clear(); optimizedItems.forEach((item, i) => { if (item.direction !== 'same') selectedItems.add(i); }); renderTable(); }
+function updateSelectedCount() { document.getElementById('selectedCount').textContent = selectedItems.size + ' Anpassungen ausgewählt'; }
+
+// --- Export Bulk Sheet ---
+// All values in English - Amazon accepts English across all marketplaces
+const EXPORT_HEADERS = ['Product', 'Entity', 'Operation', 'Campaign ID', 'Ad Group ID', 'Portfolio ID', 'Ad ID', 'Keyword ID', 'Product Targeting ID', 'Campaign Name', 'Ad Group Name', 'Start Date', 'End Date', 'Targeting Type', 'State', 'Daily Budget', 'SKU', 'ASIN', 'Ad Group Default Bid', 'Bid', 'Keyword Text', 'Match Type', 'Bidding Strategy', 'Placement', 'Percentage', 'Product Targeting Expression'];
+
+function exportBulkSheet() {
+    const selected = optimizedItems.filter((_, i) => selectedItems.has(i));
+    if (selected.length === 0) { document.getElementById('resultMsg').innerHTML = '<div class="error-msg">Keine Anpassungen ausgewählt.</div>'; return; }
+
+    const h = EXPORT_HEADERS;
+
+    function emptyRow() { const r = {}; h.forEach(c => r[c] = ''); return r; }
+
+    const rows = selected.map(item => {
+        const r = emptyRow();
+        r[h[0]] = 'Sponsored Products';           // Product
+        r[h[1]] = item.type === 'Keyword' ? 'Keyword' : 'Product Targeting'; // Entity
+        r[h[2]] = 'Update';                        // Operation
+        if (item.campaignId) r[h[3]] = item.campaignId; // Campaign ID
+        if (item.adgroupId) r[h[4]] = item.adgroupId;   // Ad Group ID
+        if (item.keywordId) r[h[7]] = item.keywordId;   // Keyword ID
+        if (item.ptId) r[h[8]] = item.ptId;             // Product Targeting ID
+        r[h[9]] = item.campaign;                   // Campaign Name
+        r[h[10]] = item.adgroup;                   // Ad Group Name
+        r[h[14]] = item.paused ? 'Paused' : 'Enabled'; // State
+        if (!item.paused) r[h[19]] = item.newBid;  // Bid (nur wenn nicht pausiert)
+        if (item.type === 'Keyword') {
+            r[h[20]] = item.label;                 // Keyword Text
+            // Match Type auf Englisch forcieren
+            const mtMap = {'weitgehend':'Broad','genau passend':'Exact','wortgruppe':'Phrase','broad':'Broad','exact':'Exact','phrase':'Phrase'};
+            r[h[21]] = mtMap[item.matchtype.toLowerCase()] || item.matchtype; // Match Type
+        } else {
+            r[h[25]] = item.label;                 // Product Targeting Expression
+        }
+        return r;
+    });
+
+    const wsData = [h, ...rows.map(r => h.map(c => r[c] || ''))];
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = h.map(() => ({ wch: 20 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Sponsored Products Campaigns');
+
+    const today = new Date();
+    const dateStr = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-' + String(today.getDate()).padStart(2, '0');
+    const fileName = 'Bid-Optimization ' + dateStr + '.xlsx';
+    XLSX.writeFile(wb, fileName);
+
+    document.getElementById('resultMsg').innerHTML = '<div class="success-msg">"' + fileName + '" erstellt (' + selected.length + ' Gebote angepasst).</div>';
+    setTimeout(() => { const el = document.getElementById('resultMsg').querySelector('.success-msg'); if (el) el.remove(); }, 4000);
+}
+
+// --- Analysis Export ---
+function exportAnalysis() {
+    const headers = ['Keyword/Target', 'Typ', 'Kampagnentyp', 'Kampagne', 'Anzeigengruppe', 'Aktuelles Gebot', 'Neues Gebot', 'Änderung %', 'ACoS %', 'ROAS', 'Orders', 'Klicks', 'Spend', 'Sales', 'CPC', 'Grund'];
+    const rows = optimizedItems.map(r => [r.label, r.type, r.campType, r.campaign, r.adgroup, r.currentBid, r.newBid, r.changePct.toFixed(1), r.acos === Infinity ? '' : r.acos.toFixed(1), r.roas.toFixed(2), r.orders, r.clicks, r.spend, r.sales, r.cpc.toFixed(2), r.reason]);
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = headers.map(() => ({ wch: 16 }));
+    XLSX.utils.book_append_sheet(wb, ws, 'Bid Analyse');
+    const d = new Date();
+    XLSX.writeFile(wb, 'Bid-Analyse ' + d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0') + '.xlsx');
+}
+</script>
+</body>
+</html>
