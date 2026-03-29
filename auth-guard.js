@@ -35,20 +35,23 @@ if (document.body) {
         return;
     }
 
-    // Check subscription
-    const { data: sub } = await sb.from('ppc_subscriptions')
-        .select('plan, status')
-        .eq('user_id', session.user.id)
-        .single();
+    // Check subscription (with retry after checkout to handle webhook delay)
+    const isPostCheckout = location.search.includes('checkout=success');
+    const maxAttempts = isPostCheckout ? 8 : 1;
+    let sub = null;
 
-    // No active subscription -> pricing page (except dashboard with active sub)
+    for (let i = 0; i < maxAttempts; i++) {
+        if (i > 0) await new Promise(r => setTimeout(r, 1500));
+        const { data } = await sb.from('ppc_subscriptions')
+            .select('plan, status')
+            .eq('user_id', session.user.id)
+            .single();
+        if (data && data.status === 'active') { sub = data; break; }
+    }
+
+    // No active subscription -> pricing page
     if (!sub || sub.status !== 'active') {
-        if (currentPage === 'dashboard') {
-            // Dashboard without sub -> redirect to pricing
-            location.href = 'pricing.html';
-        } else {
-            location.href = 'pricing.html';
-        }
+        location.href = 'pricing.html';
         return;
     }
 
