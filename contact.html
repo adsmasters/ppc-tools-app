@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kontakt - AdsMasters PPC Tools</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="auth-guard.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+            --text-primary: #e6edf3; --text-secondary: #8b949e; --accent: #3551FF;
+        }
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5; --bg-secondary: #ffffff; --border: #e0e0e0;
+            --text-primary: #1a1a1a; --text-secondary: #666666; --accent: #3551FF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-logo { font-size: 18px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .topbar-logo span { color: var(--accent); }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .topbar-nav a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .topbar-nav a:hover { color: var(--text-primary); }
+        .topbar-nav a.active { color: var(--accent); font-weight: 600; }
+        .theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1; }
+        .theme-toggle:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-logout:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .main { max-width: 640px; margin: 0 auto; padding: 40px 32px; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .page-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 32px; }
+        .tabs { display: flex; border-bottom: 2px solid var(--border); margin-bottom: 28px; }
+        .tab { flex: 1; padding: 12px; text-align: center; font-weight: 600; font-size: 14px; color: var(--text-secondary); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s; }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab:hover { color: var(--text-primary); }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 12px; padding: 32px; }
+        .field { margin-bottom: 20px; }
+        .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--text-primary); }
+        .field label .required { color: #f85149; }
+        .field input, .field select, .field textarea { width: 100%; padding: 10px 14px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; color: var(--text-primary); font-size: 14px; font-family: inherit; transition: border-color 0.2s; }
+        .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+        .field textarea { min-height: 120px; resize: vertical; }
+        .field .hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+        .btn { width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: filter 0.2s; }
+        .btn:hover { filter: brightness(1.15); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; filter: none; }
+        .msg { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; display: none; }
+        .msg-success { background: #3fb95020; color: #3fb950; border: 1px solid #3fb95040; display: block; }
+        .msg-error { background: #f8514920; color: #f85149; border: 1px solid #f8514940; display: block; }
+        @media (max-width: 640px) {
+            .topbar { padding: 0 16px; }
+            .main { padding: 24px 16px; }
+            .card { padding: 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div style="display:flex;align-items:center;gap:32px;">
+            <a href="dashboard.html" class="topbar-logo">Ads<span>Masters</span> PPC Tools</a>
+            <div class="topbar-nav" style="display:flex;gap:20px;">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="invoices.html">Rechnungen</a>
+                <a href="contact.html" class="active">Kontakt</a>
+                <a href="help.html">Hilfe</a>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#9788;</button>
+            <button class="btn-logout" onclick="ppcLogout()">Logout</button>
+        </div>
+    </div>
+    <div class="main">
+        <h1 class="page-title">Kontakt & Feedback</h1>
+        <p class="page-sub">Schreib uns bei Fragen oder teil uns deine Ideen mit.</p>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="support">Support</div>
+            <div class="tab" data-tab="feature">Feature Wunsch</div>
+        </div>
+
+        <div id="msg" class="msg"></div>
+
+        <!-- Support Tab -->
+        <div class="panel active" id="panel-support">
+            <div class="card">
+                <div class="field">
+                    <label>Betreff <span class="required">*</span></label>
+                    <select id="s-subject">
+                        <option value="Support-Anfrage">Support-Anfrage</option>
+                        <option value="Fehler melden">Fehler melden</option>
+                        <option value="Frage zu meinem Abo">Frage zu meinem Abo</option>
+                        <option value="Sonstiges">Sonstiges</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Nachricht <span class="required">*</span></label>
+                    <textarea id="s-message" placeholder="Beschreibe dein Anliegen so genau wie möglich..."></textarea>
+                </div>
+                <button class="btn" id="btn-support" onclick="sendSupport()">Nachricht senden</button>
+            </div>
+        </div>
+
+        <!-- Feature Request Tab -->
+        <div class="panel" id="panel-feature">
+            <div class="card">
+                <div class="field">
+                    <label>Was wünschst du dir? <span class="required">*</span></label>
+                    <input type="text" id="f-what" placeholder="Kurze Beschreibung des Features">
+                    <div class="hint">Eine Zeile, die das Feature zusammenfasst.</div>
+                </div>
+                <div class="field">
+                    <label>Warum brauchst du das? <span class="required">*</span></label>
+                    <textarea id="f-why" placeholder="Welches Problem löst es? Was ist der Kontext?"></textarea>
+                    <div class="hint">Je mehr Kontext, desto besser können wir es umsetzen.</div>
+                </div>
+                <div class="field">
+                    <label>Was soll der Output sein? <span class="required">*</span></label>
+                    <textarea id="f-output" placeholder="Was soll am Ende rauskommen? Z.B. eine Datei, eine Ansicht, ein Report..."></textarea>
+                </div>
+                <div class="field">
+                    <label>Welches Tool betrifft es?</label>
+                    <select id="f-tool">
+                        <option value="Allgemein / Neues Tool">Allgemein / Neues Tool</option>
+                        <option value="Campaign Creator">Campaign Creator</option>
+                        <option value="Keyword Harvesting">Keyword Harvesting</option>
+                        <option value="Wasted Ad Spend">Wasted Ad Spend</option>
+                        <option value="Bid Optimizer">Bid Optimizer</option>
+                        <option value="Negative Manager">Negative Manager</option>
+                        <option value="PPC Audit">PPC Audit</option>
+                        <option value="ASIN Optimizer">ASIN Optimizer</option>
+                    </select>
+                </div>
+                <button class="btn" id="btn-feature" onclick="sendFeature()">Feature Wunsch senden</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+const SUPABASE_URL = 'https://moxvqkisroonmdinmjat.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHZxa2lzcm9vbm1kaW5tamF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NjcwMjQsImV4cCI6MjA5MDM0MzAyNH0.MuTqA684d3H3ZUrnxOcVQpU10NVa9Pdgb0tviV-kf04';
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('panel-' + t.dataset.tab).classList.add('active');
+    hideMsg();
+}));
+
+function showMsg(text, type) {
+    const el = document.getElementById('msg');
+    el.textContent = text;
+    el.className = 'msg msg-' + type;
+}
+function hideMsg() {
+    document.getElementById('msg').className = 'msg';
+    document.getElementById('msg').style.display = 'none';
+}
+
+async function getSession() {
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+    return session;
+}
+
+async function sendSupport() {
+    const message = document.getElementById('s-message').value.trim();
+    const subject = document.getElementById('s-subject').value;
+    if (!message) { showMsg('Bitte Nachricht eingeben.', 'error'); return; }
+
+    const btn = document.getElementById('btn-support');
+    btn.disabled = true; btn.textContent = 'Wird gesendet...';
+
+    try {
+        const session = await getSession();
+        const res = await fetch(SUPABASE_URL + '/functions/v1/send-contact', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + session.access_token,
+                'apikey': SUPABASE_KEY,
+            },
+            body: JSON.stringify({ type: 'support', subject, message }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showMsg('Nachricht gesendet! Wir melden uns innerhalb von 24 Stunden.', 'success');
+            document.getElementById('s-message').value = '';
+        } else {
+            showMsg('Fehler: ' + (data.error || 'Unbekannter Fehler'), 'error');
+        }
+    } catch (e) {
+        showMsg('Fehler: ' + e.message, 'error');
+    }
+    btn.disabled = false; btn.textContent = 'Nachricht senden';
+}
+
+async function sendFeature() {
+    const what = document.getElementById('f-what').value.trim();
+    const why = document.getElementById('f-why').value.trim();
+    const output = document.getElementById('f-output').value.trim();
+    const tool = document.getElementById('f-tool').value;
+    if (!what || !why || !output) { showMsg('Bitte alle Pflichtfelder ausfüllen.', 'error'); return; }
+
+    const btn = document.getElementById('btn-feature');
+    btn.disabled = true; btn.textContent = 'Wird gesendet...';
+
+    try {
+        const session = await getSession();
+        const res = await fetch(SUPABASE_URL + '/functions/v1/send-contact', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + session.access_token,
+                'apikey': SUPABASE_KEY,
+            },
+            body: JSON.stringify({ type: 'feature_request', what, why, output, tool }),
+        });
+        const data = await res.json();
+        if (data.success) {
+            showMsg('Feature Wunsch gesendet! Danke für dein Feedback.', 'success');
+            document.getElementById('f-what').value = '';
+            document.getElementById('f-why').value = '';
+            document.getElementById('f-output').value = '';
+        } else {
+            showMsg('Fehler: ' + (data.error || 'Unbekannter Fehler'), 'error');
+        }
+    } catch (e) {
+        showMsg('Fehler: ' + e.message, 'error');
+    }
+    btn.disabled = false; btn.textContent = 'Feature Wunsch senden';
+}
+
+// Theme
+const savedTheme = localStorage.getItem('ppc_theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+document.getElementById('themeToggle').innerHTML = savedTheme === 'light' ? '&#9790;' : '&#9788;';
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('ppc_theme', next);
+    document.getElementById('themeToggle').innerHTML = next === 'light' ? '&#9790;' : '&#9788;';
+}
+</script>
+</body>
+</html>

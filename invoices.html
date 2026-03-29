@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rechnungen - AdsMasters PPC Tools</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="auth-guard.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0d1117; --bg-secondary: #161b22; --border: #30363d;
+            --text-primary: #e6edf3; --text-secondary: #8b949e; --accent: #3551FF;
+        }
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5; --bg-secondary: #ffffff; --border: #e0e0e0;
+            --text-primary: #1a1a1a; --text-secondary: #666666; --accent: #3551FF;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; transition: background 0.2s, color 0.2s; }
+        .topbar { background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+        .topbar-logo { font-size: 18px; font-weight: 700; color: var(--text-primary); text-decoration: none; }
+        .topbar-logo span { color: var(--accent); }
+        .topbar-right { display: flex; align-items: center; gap: 10px; }
+        .topbar-nav a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+        .topbar-nav a:hover { color: var(--text-primary); }
+        .topbar-nav a.active { color: var(--accent); font-weight: 600; }
+        .theme-toggle { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 16px; line-height: 1; }
+        .theme-toggle:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .btn-logout { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .btn-logout:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+        .main { max-width: 900px; margin: 0 auto; padding: 40px 32px; }
+        .page-title { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+        .page-sub { font-size: 14px; color: var(--text-secondary); margin-bottom: 32px; }
+        .loading { text-align: center; padding: 60px 0; color: var(--text-secondary); font-size: 14px; }
+        .empty { text-align: center; padding: 60px 0; color: var(--text-secondary); }
+        .empty-icon { font-size: 48px; margin-bottom: 16px; }
+        table { width: 100%; border-collapse: collapse; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        th { text-align: left; padding: 14px 16px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); border-bottom: 1px solid var(--border); background: var(--bg-secondary); }
+        td { padding: 14px 16px; font-size: 14px; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
+        .status { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+        .status-paid { background: #3fb95020; color: #3fb950; border: 1px solid #3fb95040; }
+        .status-open { background: #d2992020; color: #d29920; border: 1px solid #d2992040; }
+        .btn-download { display: inline-flex; align-items: center; gap: 6px; background: var(--accent); color: #fff; padding: 6px 14px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: 600; }
+        .btn-download:hover { filter: brightness(1.15); }
+        .msg { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; }
+        .msg-error { background: #f8514920; color: #f85149; border: 1px solid #f8514940; }
+        @media (max-width: 640px) {
+            .topbar { padding: 0 16px; }
+            .main { padding: 24px 16px; }
+            table { font-size: 13px; }
+            th, td { padding: 10px 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div style="display:flex;align-items:center;gap:32px;">
+            <a href="dashboard.html" class="topbar-logo">Ads<span>Masters</span> PPC Tools</a>
+            <div class="topbar-nav" style="display:flex;gap:20px;">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="invoices.html" class="active">Rechnungen</a>
+                <a href="contact.html">Kontakt</a>
+                <a href="help.html">Hilfe</a>
+            </div>
+        </div>
+        <div class="topbar-right">
+            <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#9788;</button>
+            <button class="btn-logout" onclick="ppcLogout()">Logout</button>
+        </div>
+    </div>
+    <div class="main">
+        <h1 class="page-title">Rechnungen</h1>
+        <p class="page-sub">Alle Rechnungen aus deinem Abo im Überblick.</p>
+        <div id="msg"></div>
+        <div id="content">
+            <div class="loading" id="loading">Rechnungen werden geladen...</div>
+        </div>
+    </div>
+
+<script>
+const SUPABASE_URL = 'https://moxvqkisroonmdinmjat.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHZxa2lzcm9vbm1kaW5tamF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NjcwMjQsImV4cCI6MjA5MDM0MzAyNH0.MuTqA684d3H3ZUrnxOcVQpU10NVa9Pdgb0tviV-kf04';
+
+(async () => {
+    // Wait for auth-guard to finish
+    while (!window.ppcUser) {
+        await new Promise(r => setTimeout(r, 100));
+    }
+
+    const { data: { session } } = await window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY).auth.getSession();
+    if (!session) return;
+
+    try {
+        const res = await fetch(SUPABASE_URL + '/functions/v1/get-invoices', {
+            headers: {
+                'Authorization': 'Bearer ' + session.access_token,
+                'apikey': SUPABASE_KEY,
+            },
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            document.getElementById('msg').innerHTML = '<div class="msg msg-error">' + data.error + '</div>';
+            document.getElementById('loading').style.display = 'none';
+            return;
+        }
+
+        const invoices = data.invoices || [];
+        if (invoices.length === 0) {
+            document.getElementById('content').innerHTML = `
+                <div class="empty">
+                    <div class="empty-icon">&#128196;</div>
+                    <p>Noch keine Rechnungen vorhanden.</p>
+                    <p style="margin-top:8px;font-size:13px;">Rechnungen werden nach der ersten Zahlung hier angezeigt.</p>
+                </div>`;
+            return;
+        }
+
+        let html = '<table><thead><tr><th>Datum</th><th>Rechnungsnr.</th><th>Betrag</th><th>Status</th><th>PDF</th></tr></thead><tbody>';
+        invoices.forEach(inv => {
+            const date = new Date(inv.date * 1000).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const amount = (inv.amount / 100).toLocaleString('de-DE', { style: 'currency', currency: inv.currency.toUpperCase() });
+            const statusClass = inv.status === 'paid' ? 'status-paid' : 'status-open';
+            const statusText = inv.status === 'paid' ? 'Bezahlt' : inv.status === 'open' ? 'Offen' : inv.status;
+            const pdfLink = inv.pdf ? `<a href="${inv.pdf}" target="_blank" class="btn-download">&#11015; PDF</a>` : '—';
+
+            html += `<tr>
+                <td>${date}</td>
+                <td>${inv.number || '—'}</td>
+                <td><strong>${amount}</strong></td>
+                <td><span class="status ${statusClass}">${statusText}</span></td>
+                <td>${pdfLink}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('content').innerHTML = html;
+
+    } catch (e) {
+        document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler beim Laden der Rechnungen: ' + e.message + '</div>';
+    }
+})();
+
+// Theme
+const savedTheme = localStorage.getItem('ppc_theme') || 'light';
+document.documentElement.setAttribute('data-theme', savedTheme);
+document.getElementById('themeToggle').innerHTML = savedTheme === 'light' ? '&#9790;' : '&#9788;';
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'light' ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('ppc_theme', next);
+    document.getElementById('themeToggle').innerHTML = next === 'light' ? '&#9790;' : '&#9788;';
+}
+</script>
+</body>
+</html>
