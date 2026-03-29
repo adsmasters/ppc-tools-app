@@ -64,12 +64,9 @@
     <div class="topbar">
         <div style="display:flex;align-items:center;gap:32px;">
             <a href="dashboard.html" class="topbar-logo">Ads<span>Masters</span> PPC Tools</a>
-            <div class="topbar-nav" style="display:flex;gap:20px;">
-                <a href="dashboard.html">Dashboard</a>
-                <a href="invoices.html" class="active">Rechnungen</a>
-                <a href="contact.html">Kontakt</a>
-                <a href="help.html">Hilfe</a>
-            </div>
+            <a href="invoices.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Rechnungen</a>
+            <a href="contact.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Kontakt</a>
+            <a href="help.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Hilfe</a>
         </div>
         <div class="topbar-right">
             <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">&#9788;</button>
@@ -88,18 +85,24 @@
 <script>
 // Use sb client from auth-guard.js (already loaded)
 (async () => {
-    // Wait for auth-guard to finish
+    // Wait for auth-guard to finish (max 5 seconds)
     let attempts = 0;
     while (!window.ppcUser && attempts < 50) {
         await new Promise(r => setTimeout(r, 100));
         attempts++;
     }
-    if (!window.ppcUser) return;
-
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) return;
+    if (!window.ppcUser) {
+        document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler: Authentifizierung fehlgeschlagen. Bitte neu einloggen.</div>';
+        return;
+    }
 
     try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) {
+            document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler: Keine aktive Session. Bitte neu einloggen.</div>';
+            return;
+        }
+
         const res = await fetch(SUPABASE_URL + '/functions/v1/get-invoices', {
             headers: {
                 'Authorization': 'Bearer ' + session.access_token,
@@ -109,8 +112,7 @@
         const data = await res.json();
 
         if (data.error) {
-            document.getElementById('msg').innerHTML = '<div class="msg msg-error">' + data.error + '</div>';
-            document.getElementById('loading').style.display = 'none';
+            document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler: ' + data.error + '</div>';
             return;
         }
 
@@ -145,7 +147,7 @@
         document.getElementById('content').innerHTML = html;
 
     } catch (e) {
-        document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler beim Laden der Rechnungen: ' + e.message + '</div>';
+        document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler: ' + e.message + '</div>';
     }
 })();
 

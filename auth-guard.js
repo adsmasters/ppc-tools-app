@@ -10,10 +10,16 @@ const PUBLIC_PAGES = ['index', 'landing', 'pricing', 'reset-password', 'help'];
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Hide body until auth check completes
-document.body.style.visibility = 'hidden';
+// Hide body until auth check completes (wait for DOM if script is in <head>)
+if (document.body) {
+    document.body.style.visibility = 'hidden';
+} else {
+    document.addEventListener('DOMContentLoaded', () => { document.body.style.visibility = 'hidden'; });
+}
 
 (async () => {
+    // Wait for body to exist
+    while (!document.body) await new Promise(r => setTimeout(r, 10));
     const { data: { session } } = await sb.auth.getSession();
     const currentPage = location.pathname.split('/').pop().replace('.html', '') || 'index';
 
