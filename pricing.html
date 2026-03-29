@@ -48,7 +48,10 @@
 <body>
     <div class="topbar">
         <a href="index.html"><img src="logo.png" alt="AdsMasters"></a>
-        <a href="index.html" id="backLink">Zurück</a>
+        <div style="display:flex;align-items:center;gap:16px;">
+            <a href="index.html" id="backLink">Zurück</a>
+            <button onclick="ppcLogoutFromPricing()" style="background:transparent;border:1px solid #ddd;color:#555;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">Logout</button>
+        </div>
     </div>
     <div class="container">
         <h1>Dein Paket wählen</h1>
@@ -183,6 +186,11 @@ async function checkout(plan) {
         btn.disabled = false;
         btn.textContent = plan === 'starter' ? 'Starter wählen' : 'Professional starten';
     }
+}
+
+async function ppcLogoutFromPricing() {
+    await sb.auth.signOut();
+    location.href = 'login.html';
 }
 
 async function openPortal() {
