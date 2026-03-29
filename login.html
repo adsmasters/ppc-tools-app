@@ -128,13 +128,9 @@ document.getElementById('reg-btn').addEventListener('click', async () => {
         }
     });
     if (error) { showMsg('Fehler: ' + error.message, 'error'); btn.disabled = false; btn.textContent = 'Konto erstellen'; return; }
-    if (data.user && data.user.identities && data.user.identities.length === 0) {
-        showMsg('Diese E-Mail ist bereits registriert. Bitte melde dich an.', 'error');
-        btn.disabled = false; btn.textContent = 'Konto erstellen';
-        return;
-    }
     if (data.user) {
-        await sb.from('ppc_profiles').upsert({ user_id: data.user.id, company_name: company });
+        // Try to save profile (might fail if user already exists, that's ok)
+        try { await sb.from('ppc_profiles').upsert({ user_id: data.user.id, company_name: company }); } catch(e) {}
         const { data: { session } } = await sb.auth.getSession();
         if (session) {
             location.href = 'pricing.html';
