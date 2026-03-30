@@ -154,8 +154,9 @@ let isLoggedIn = false;
 })();
 
 async function checkout(plan) {
-    // Refresh session before checkout
-    const { data: { session: freshSession } } = await sb.auth.getSession();
+    // Force-refresh token to get a valid JWT
+    const { data: refreshData } = await sb.auth.refreshSession();
+    const freshSession = refreshData?.session;
     if (!freshSession) {
         sessionStorage.setItem('ppc_selected_plan', plan);
         location.href = 'login.html?plan=' + plan;
