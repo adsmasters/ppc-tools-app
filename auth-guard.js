@@ -4,7 +4,6 @@
 const SUPABASE_URL = 'https://moxvqkisroonmdinmjat.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHZxa2lzcm9vbm1kaW5tamF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NjcwMjQsImV4cCI6MjA5MDM0MzAyNH0.MuTqA684d3H3ZUrnxOcVQpU10NVa9Pdgb0tviV-kf04';
 
-const STARTER_TOOLS = ['dashboard', 'campaign-creator', 'audit', 'negative-manager', 'invoices', 'contact'];
 const ALL_TOOLS = ['dashboard', 'campaign-creator', 'audit', 'negative-manager', 'keyword-harvesting', 'wasted-spend', 'bid-optimizer', 'asin-optimizer', 'invoices', 'contact'];
 const PUBLIC_PAGES = ['index', 'landing', 'pricing', 'reset-password', 'help'];
 
@@ -56,9 +55,8 @@ if (document.body) {
     }
 
     // Check tool access
-    const allowed = sub.plan === 'professional' ? ALL_TOOLS : STARTER_TOOLS;
-    if (!allowed.includes(currentPage)) {
-        location.href = 'dashboard.html?upgrade=true';
+    if (!ALL_TOOLS.includes(currentPage)) {
+        location.href = 'dashboard.html';
         return;
     }
 
