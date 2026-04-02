@@ -127,20 +127,20 @@
             return;
         }
 
-        let html = '<table><thead><tr><th>Datum</th><th>Rechnungsnr.</th><th>Betrag</th><th>Status</th><th>PDF</th></tr></thead><tbody>';
+        let html = '<table><thead><tr><th>Datum</th><th>Zeitraum</th><th>Betrag (netto)</th><th>Betrag (brutto)</th><th>PDF</th></tr></thead><tbody>';
         invoices.forEach(inv => {
-            const date = new Date(inv.date * 1000).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            const amount = (inv.amount / 100).toLocaleString('de-DE', { style: 'currency', currency: inv.currency.toUpperCase() });
-            const statusClass = inv.status === 'paid' ? 'status-paid' : 'status-open';
-            const statusText = inv.status === 'paid' ? 'Bezahlt' : inv.status === 'open' ? 'Offen' : inv.status;
-            const pdfLink = inv.pdf ? `<a href="${inv.pdf}" target="_blank" class="btn-download">&#11015; PDF</a>` : '—';
+            const date = new Date(inv.created_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const amountNet = Number(inv.amount_net).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+            const amountGross = Number(inv.amount_gross).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' });
+            const period = inv.period_label || '—';
+            const downloadUrl = SUPABASE_URL + '/functions/v1/get-invoices?invoiceId=' + inv.lexoffice_invoice_id;
 
             html += `<tr>
                 <td>${date}</td>
-                <td>${inv.number || '—'}</td>
-                <td><strong>${amount}</strong></td>
-                <td><span class="status ${statusClass}">${statusText}</span></td>
-                <td>${pdfLink}</td>
+                <td style="font-size:13px;color:var(--text-secondary)">${period}</td>
+                <td>${amountNet}</td>
+                <td><strong>${amountGross}</strong></td>
+                <td><a href="${downloadUrl}" target="_blank" class="btn-download" onclick="downloadInvoice(event, '${inv.lexoffice_invoice_id}')">&#11015; PDF</a></td>
             </tr>`;
         });
         html += '</tbody></table>';
@@ -150,6 +150,30 @@
         document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler: ' + e.message + '</div>';
     }
 })();
+
+async function downloadInvoice(e, invoiceId) {
+    e.preventDefault();
+    const btn = e.currentTarget;
+    btn.textContent = '⏳ Laden...';
+    try {
+        const { data: { session } } = await sb.auth.getSession();
+        const res = await fetch(SUPABASE_URL + '/functions/v1/get-invoices?invoiceId=' + invoiceId, {
+            headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': SUPABASE_ANON_KEY }
+        });
+        if (!res.ok) throw new Error('Download fehlgeschlagen');
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'Rechnung-' + invoiceId + '.pdf';
+        a.click();
+        URL.revokeObjectURL(url);
+        btn.innerHTML = '&#11015; PDF';
+    } catch(err) {
+        btn.innerHTML = '&#11015; PDF';
+        alert('Fehler beim Download: ' + err.message);
+    }
+}
 
 // Theme
 const savedTheme = localStorage.getItem('ppc_theme') || 'light';
