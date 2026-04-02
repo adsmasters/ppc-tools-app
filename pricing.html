@@ -135,8 +135,8 @@ async function checkout(plan) {
         session = refreshData?.session;
     }
     if (!session) {
-        sessionStorage.setItem('ppc_selected_plan', plan);
-        location.href = 'login.html?plan=' + plan;
+        sessionStorage.removeItem('ppc_selected_plan');
+        location.href = 'login.html';
         return;
     }
     currentSession = session;
@@ -151,19 +151,21 @@ async function checkout(plan) {
             },
             body: JSON.stringify({ plan }),
         });
-        // 401 from Supabase gateway = JWT invalid/expired → re-login
+        // 401 from Supabase gateway = JWT invalid/expired → sign out and re-login
         if (res.status === 401) {
-            sessionStorage.setItem('ppc_selected_plan', plan);
-            location.href = 'login.html?plan=' + plan;
+            await sb.auth.signOut();
+            sessionStorage.removeItem('ppc_selected_plan');
+            location.href = 'login.html';
             return;
         }
         const data = await res.json();
         if (data.url) {
             location.href = data.url;
         } else if (data.error === 'Invalid token' || data.error === 'No auth header' || data.message?.includes('Invalid JWT') || data.error?.includes('JWT')) {
-            // Session expired - redirect to login
-            sessionStorage.setItem('ppc_selected_plan', plan);
-            location.href = 'login.html?plan=' + plan;
+            // Session expired - sign out and redirect to login (no plan param to avoid loop)
+            await sb.auth.signOut();
+            sessionStorage.removeItem('ppc_selected_plan');
+            location.href = 'login.html';
         } else {
             document.getElementById('msg').className = 'msg error';
             document.getElementById('msg').textContent = 'Fehler: ' + (data.error || data.message || JSON.stringify(data));
