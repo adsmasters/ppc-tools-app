@@ -161,7 +161,7 @@ async function checkout(plan) {
         const data = await res.json();
         if (data.url) {
             location.href = data.url;
-        } else if (data.error === 'Invalid token' || data.error === 'No auth header' || data.message?.includes('Invalid JWT') || data.error?.includes('JWT')) {
+        } else if (data.error === 'Invalid token' || data.error === 'No auth header' || data.message?.includes('Invalid JWT') || data.error?.includes('JWT') || data.error?.includes('eingeloggt')) {
             // Session expired - sign out and redirect to login (no plan param to avoid loop)
             await sb.auth.signOut();
             sessionStorage.removeItem('ppc_selected_plan');
