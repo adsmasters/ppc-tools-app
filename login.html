@@ -72,20 +72,15 @@
 const { createClient } = window.supabase;
 const sb = createClient('https://moxvqkisroonmdinmjat.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1veHZxa2lzcm9vbm1kaW5tamF0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3NjcwMjQsImV4cCI6MjA5MDM0MzAyNH0.MuTqA684d3H3ZUrnxOcVQpU10NVa9Pdgb0tviV-kf04');
 
-// If already logged in, redirect (only if NOT coming from a failed checkout to prevent loops)
+// If already logged in with active subscription → dashboard
+// If no subscription → stay on login page (avoid pricing↔login loop)
 sb.auth.getSession().then(async ({ data: { session } }) => {
     if (!session) return;
-    // Don't auto-redirect if there's a plan param (user was sent here due to auth issue)
-    // They need to see the login page and re-authenticate
-    const urlParams = new URLSearchParams(location.search);
-    if (urlParams.get('plan')) return;
-    // Check subscription before redirect
     const { data: sub } = await sb.from('ppc_subscriptions').select('status').eq('user_id', session.user.id).single();
     if (sub && sub.status === 'active') {
         location.href = 'dashboard.html';
-    } else {
-        location.href = 'pricing.html';
     }
+    // No active sub: stay on login page, user needs to re-login or go to pricing manually
 });
 
 // Tabs

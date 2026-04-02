@@ -92,10 +92,7 @@ let currentSession = null;
 let isLoggedIn = false;
 
 (async () => {
-    // Handle auth callback from email confirmation (token in URL hash)
-    if (location.hash.includes('access_token') || location.hash.includes('error')) {
-        await sb.auth.exchangeCodeForSession?.(location.search);
-    }
+    sessionStorage.removeItem('ppc_selected_plan'); // Always clear to prevent redirect loops
     const { data: { session } } = await sb.auth.getSession();
     if (session) {
         currentSession = session;
@@ -112,13 +109,6 @@ let isLoggedIn = false;
             document.getElementById('manageSection').style.display = 'block';
             document.getElementById('btn-pro').textContent = 'Aktuelles Paket';
             document.getElementById('btn-pro').disabled = true;
-        }
-
-        // Auto-checkout if redirected back after registration
-        const selectedPlan = sessionStorage.getItem('ppc_selected_plan');
-        if (selectedPlan && (!sub || sub.status !== 'active')) {
-            sessionStorage.removeItem('ppc_selected_plan');
-            checkout(selectedPlan);
         }
     }
 })();
