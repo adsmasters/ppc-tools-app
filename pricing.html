@@ -124,20 +124,22 @@ let isLoggedIn = false;
 })();
 
 async function checkout(plan) {
-    // Force-refresh token to get a valid JWT
-    const { data: refreshData } = await sb.auth.refreshSession();
-    const freshSession = refreshData?.session;
-    if (!freshSession) {
+    const btn = document.getElementById('btn-pro');
+    btn.disabled = true;
+    btn.textContent = 'Weiterleitung zu Stripe...';
+
+    // Get current session, refresh if needed
+    let { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+        const { data: refreshData } = await sb.auth.refreshSession();
+        session = refreshData?.session;
+    }
+    if (!session) {
         sessionStorage.setItem('ppc_selected_plan', plan);
         location.href = 'login.html?plan=' + plan;
         return;
     }
-    currentSession = freshSession;
-    isLoggedIn = true;
-
-    const btn = document.getElementById('btn-pro');
-    btn.disabled = true;
-    btn.textContent = 'Weiterleitung zu Stripe...';
+    currentSession = session;
 
     try {
         const res = await fetch(SUPABASE_URL + '/functions/v1/create-checkout-session', {
@@ -149,11 +151,18 @@ async function checkout(plan) {
             },
             body: JSON.stringify({ plan }),
         });
+        // 401 from Supabase gateway = JWT invalid/expired → re-login
+        if (res.status === 401) {
+            sessionStorage.setItem('ppc_selected_plan', plan);
+            location.href = 'login.html?plan=' + plan;
+            return;
+        }
         const data = await res.json();
         if (data.url) {
             location.href = data.url;
-        } else if (data.error === 'Invalid token' || data.error === 'No auth header') {
+        } else if (data.error === 'Invalid token' || data.error === 'No auth header' || data.message?.includes('Invalid JWT') || data.error?.includes('JWT')) {
             // Session expired - redirect to login
+            sessionStorage.setItem('ppc_selected_plan', plan);
             location.href = 'login.html?plan=' + plan;
         } else {
             document.getElementById('msg').className = 'msg error';
