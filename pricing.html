@@ -104,11 +104,9 @@ let isLoggedIn = false;
             .single();
 
         if (sub && sub.status === 'active') {
-            document.getElementById('currentPlan').style.display = 'block';
-            document.getElementById('currentPlan').textContent = 'Dein aktuelles Paket: Professional';
-            document.getElementById('manageSection').style.display = 'block';
-            document.getElementById('btn-pro').textContent = 'Aktuelles Paket';
-            document.getElementById('btn-pro').disabled = true;
+            // Active subscription → go straight to the tools
+            location.href = 'dashboard.html';
+            return;
         }
     }
 })();
