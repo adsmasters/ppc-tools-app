@@ -63,8 +63,8 @@ if (document.body) {
             .select('plan, status, current_period_end')
             .eq('user_id', session.user.id)
             .single();
-        // Active status AND period not expired (safety net if webhook was missed)
-        if (data && data.status === 'active') {
+        // Allow access if active, OR cancelled but period hasn't ended yet
+        if (data && (data.status === 'active' || data.status === 'cancelled')) {
             const expired = data.current_period_end && new Date(data.current_period_end) < new Date();
             if (!expired) { sub = data; break; }
         }
@@ -72,8 +72,8 @@ if (document.body) {
 
     if (loadingOverlay) loadingOverlay.remove();
 
-    // No active subscription -> pricing page
-    if (!sub || sub.status !== 'active') {
+    // No valid subscription -> pricing page
+    if (!sub || (sub.status !== 'active' && sub.status !== 'cancelled')) {
         location.href = 'pricing.html';
         return;
     }
