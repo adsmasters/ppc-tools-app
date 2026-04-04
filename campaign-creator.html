@@ -210,6 +210,8 @@
 <div class="topbar">
     <div style="display:flex;align-items:center;gap:32px;">
         <a href="dashboard.html" class="topbar-logo">Ads<span>Masters</span> PPC Tools</a>
+        <a href="dashboard.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Tool-Übersicht</a>
+        <a href="tutorials.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Tutorials</a>
         <a href="invoices.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Rechnungen</a>
         <a href="contact.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Kontakt</a>
         <a href="help.html" style="color:var(--text-secondary);text-decoration:none;font-size:14px;">Hilfe</a>
@@ -415,7 +417,6 @@
                         <div class="mini-field"><label>ToS %</label><input type="number" id="tos-auto" step="1" min="0" max="900" placeholder=""></div>
                         <div class="mini-field"><label>PP %</label><input type="number" id="pp-auto" step="1" min="0" max="900" placeholder=""></div>
                         <div class="mini-field neg-check"><input type="checkbox" id="neg-auto" checked><label data-i18n="lbl_neg_kw_short">Negative KW</label></div>
-                        <div class="mini-field neg-check"><input type="checkbox" id="cross-neg-auto" checked><label><span data-i18n="lbl_cross_negation">Cross-Negation</span> <span class="tooltip-icon" data-tip="Brand Keywords werden als Negative Phrase, generische Keywords als Negative Exact in die Auto-Kampagne eingefügt — verhindert Kannibalisierung." data-i18n-tip="tip_cross_negation">?</span></label></div>
                     </div>
                     <div class="auto-sub" id="autoSubOptions">
                         <div class="auto-sub-item"><input type="checkbox" id="auto-close"><span data-i18n="auto_close">Enge Übereinstimmung</span><input type="number" id="bid-auto-close" step="0.01" value="0.50"></div>
@@ -1850,11 +1851,6 @@ function generateRows() {
                 negProdTargetList.forEach(asin => addNegProdTargetingRow(campName, adGroupName, asin));
             }
 
-            // Cross-Negation: Brand KWs als Negative Broad, Generic Exact KWs als Negative Exact in Auto
-            if (document.getElementById('cross-neg-auto').checked) {
-                brandKws.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negPhrase));
-                genericKws.forEach(kw => addNegKeywordRow(campName, adGroupName, kw, mt.negExact));
-            }
         }
 
         // ========== KEYWORD CAMPAIGNS ==========
