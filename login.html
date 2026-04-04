@@ -198,7 +198,7 @@ document.getElementById('reset-btn').addEventListener('click', async () => {
     const btn = document.getElementById('reset-btn');
     btn.disabled = true; btn.textContent = 'Wird gesendet...';
     const { error } = await sb.auth.resetPasswordForEmail(email, {
-        redirectTo: location.origin + '/ppc-tools-app/login.html'
+        redirectTo: location.origin + '/ppc-tools-app/reset-password.html'
     });
     if (error) { showMsg('Fehler: ' + error.message, 'error'); }
     else { showMsg('Link zum Zurücksetzen wurde an ' + email + ' gesendet.', 'success'); }
@@ -213,6 +213,25 @@ document.addEventListener('keydown', e => {
     else if (active.id === 'panel-register') document.getElementById('reg-btn').click();
     else document.getElementById('reset-btn').click();
 });
+
+// Handle email confirmation redirect (Supabase puts type=signup in hash)
+(async () => {
+    const hash = new URLSearchParams(window.location.hash.substring(1));
+    const qp = new URLSearchParams(window.location.search);
+    if (hash.get('type') === 'signup' || qp.get('type') === 'signup') {
+        // Email successfully confirmed → auto-login happened, check session
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+            const { data: sub } = await sb.from('ppc_subscriptions').select('status').eq('user_id', session.user.id).single();
+            if (sub && sub.status === 'active') { location.href = 'dashboard.html'; return; }
+            location.href = 'pricing.html'; return;
+        }
+        showMsg('E-Mail-Adresse bestätigt! Bitte melde dich jetzt an.', 'success');
+    }
+    if (hash.get('type') === 'recovery' || qp.get('type') === 'recovery') {
+        location.href = 'reset-password.html' + window.location.hash + window.location.search;
+    }
+})();
 
 // Check URL params for tab pre-selection
 const params = new URLSearchParams(location.search);
