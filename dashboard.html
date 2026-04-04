@@ -58,7 +58,7 @@
     </div>
     <div class="main">
         <h1 class="page-title">PPC Tools</h1>
-        <p class="page-sub">Amazon Advertising Werkzeuge für das AdsMasters Team</p>
+        <p class="page-sub" id="subStatus">Amazon Advertising Werkzeuge</p>
         <div class="tools-grid">
             <a href="campaign-creator.html" class="tool-card">
                 <div class="tool-icon">🚀</div>
@@ -108,6 +108,25 @@
         </div>
     </div>
     <script>
+        // Show subscription status
+        (async () => {
+            await new Promise(r => { const t = setInterval(() => { if (window.ppcUser) { clearInterval(t); r(); } }, 50); });
+            const { data: sub } = await sb.from('ppc_subscriptions')
+                .select('plan, status, current_period_end')
+                .eq('user_id', window.ppcUser.id)
+                .single();
+            if (sub) {
+                const end = sub.current_period_end ? new Date(sub.current_period_end) : null;
+                const endStr = end ? end.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
+                const el = document.getElementById('subStatus');
+                if (endStr) {
+                    el.textContent = `Professional · Zugriff bis ${endStr}`;
+                } else {
+                    el.textContent = 'Professional · Aktiv';
+                }
+            }
+        })();
+
         async function openPortal() {
             const btn = document.querySelector('.btn-manage');
             btn.textContent = 'Wird geladen...';

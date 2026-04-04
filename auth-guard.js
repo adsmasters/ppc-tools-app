@@ -42,10 +42,14 @@ if (document.body) {
     for (let i = 0; i < maxAttempts; i++) {
         if (i > 0) await new Promise(r => setTimeout(r, 1500));
         const { data } = await sb.from('ppc_subscriptions')
-            .select('plan, status')
+            .select('plan, status, current_period_end')
             .eq('user_id', session.user.id)
             .single();
-        if (data && data.status === 'active') { sub = data; break; }
+        // Active status AND period not expired (safety net if webhook was missed)
+        if (data && data.status === 'active') {
+            const expired = data.current_period_end && new Date(data.current_period_end) < new Date();
+            if (!expired) { sub = data; break; }
+        }
     }
 
     // No active subscription -> pricing page
