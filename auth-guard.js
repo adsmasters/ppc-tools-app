@@ -36,8 +36,26 @@ if (document.body) {
 
     // Check subscription (with retry after checkout to handle webhook delay)
     const isPostCheckout = location.search.includes('checkout=success');
-    const maxAttempts = isPostCheckout ? 8 : 1;
+    const maxAttempts = isPostCheckout ? 20 : 1;
     let sub = null;
+
+    // Show loading screen during post-checkout polling instead of blank page
+    let loadingOverlay = null;
+    if (isPostCheckout) {
+        document.body.style.visibility = 'visible';
+        loadingOverlay = document.createElement('div');
+        loadingOverlay.style.cssText = 'position:fixed;inset:0;background:#f5f5f5;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;font-family:Arial,sans-serif;';
+        loadingOverlay.innerHTML = `
+            <div style="font-size:48px;margin-bottom:20px;">✅</div>
+            <div style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:8px;">Zahlung erfolgreich!</div>
+            <div style="font-size:14px;color:#666;margin-bottom:32px;">Dein Abo wird aktiviert – einen Moment bitte...</div>
+            <div style="width:200px;height:4px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+                <div id="checkout-bar" style="height:100%;background:#3551FF;border-radius:4px;width:0%;transition:width 1.5s ease;"></div>
+            </div>
+        `;
+        document.body.appendChild(loadingOverlay);
+        setTimeout(() => { const b = document.getElementById('checkout-bar'); if (b) b.style.width = '90%'; }, 100);
+    }
 
     for (let i = 0; i < maxAttempts; i++) {
         if (i > 0) await new Promise(r => setTimeout(r, 1500));
@@ -51,6 +69,8 @@ if (document.body) {
             if (!expired) { sub = data; break; }
         }
     }
+
+    if (loadingOverlay) loadingOverlay.remove();
 
     // No active subscription -> pricing page
     if (!sub || sub.status !== 'active') {
