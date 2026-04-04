@@ -76,8 +76,9 @@ if (document.body) {
     footer.innerHTML = `
         <a href="agb.html" style="color:var(--text-secondary,#888);text-decoration:none;margin:0 12px;">AGB</a>
         <a href="datenschutz.html" style="color:var(--text-secondary,#888);text-decoration:none;margin:0 12px;">Datenschutz</a>
+        <a href="impressum.html" style="color:var(--text-secondary,#888);text-decoration:none;margin:0 12px;">Impressum</a>
         <a href="contact.html" style="color:var(--text-secondary,#888);text-decoration:none;margin:0 12px;">Kontakt</a>
-        <span style="color:var(--text-secondary,#aaa);margin:0 12px;">© 2026 AdsMasters</span>
+        <span style="color:var(--text-secondary,#aaa);margin:0 12px;">© 2026 AdsMasters GmbH</span>
     `;
     document.body.appendChild(footer);
 })();
