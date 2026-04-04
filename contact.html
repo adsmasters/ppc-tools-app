@@ -93,16 +93,21 @@
             <div class="card">
                 <div class="field">
                     <label>Betreff <span class="required">*</span></label>
-                    <select id="s-subject">
+                    <select id="s-subject" onchange="onSubjectChange(this.value)">
                         <option value="Support-Anfrage">Support-Anfrage</option>
                         <option value="Fehler melden">Fehler melden</option>
                         <option value="Frage zu meinem Abo">Frage zu meinem Abo</option>
                         <option value="Sonstiges">Sonstiges</option>
+                        <option value="Datenlöschung (DSGVO)">Datenlöschung meiner Daten (DSGVO Art. 17)</option>
                     </select>
                 </div>
-                <div class="field">
+                <div class="field" id="s-message-field">
                     <label>Nachricht <span class="required">*</span></label>
                     <textarea id="s-message" placeholder="Beschreibe dein Anliegen so genau wie möglich..."></textarea>
+                </div>
+                <div id="gdpr-notice" style="display:none; padding:14px; background:rgba(248,81,73,0.08); border:1px solid rgba(248,81,73,0.3); border-radius:8px; font-size:13px; line-height:1.6; margin-bottom:16px;">
+                    <strong>Löschantrag gemäß DSGVO Art. 17</strong><br>
+                    Mit dem Absenden beantragst du die vollständige Löschung deines Accounts und aller gespeicherten Daten. Wir bearbeiten deinen Antrag innerhalb von 30 Tagen. Dein Zugang wird danach dauerhaft deaktiviert.
                 </div>
                 <button class="btn" id="btn-support" onclick="sendSupport()">Nachricht senden</button>
             </div>
@@ -155,6 +160,13 @@ document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () =>
     hideMsg();
 }));
 
+function onSubjectChange(val) {
+    const isGdpr = val === 'Datenlöschung (DSGVO)';
+    document.getElementById('gdpr-notice').style.display = isGdpr ? 'block' : 'none';
+    document.getElementById('s-message-field').style.display = isGdpr ? 'none' : 'block';
+    document.getElementById('btn-support').textContent = isGdpr ? 'Löschantrag stellen' : 'Nachricht senden';
+}
+
 function showMsg(text, type) {
     const el = document.getElementById('msg');
     el.textContent = text;
@@ -173,7 +185,8 @@ async function getSession() {
 async function sendSupport() {
     const message = document.getElementById('s-message').value.trim();
     const subject = document.getElementById('s-subject').value;
-    if (!message) { showMsg('Bitte Nachricht eingeben.', 'error'); return; }
+    const isGdpr = subject === 'Datenlöschung (DSGVO)';
+    if (!isGdpr && !message) { showMsg('Bitte Nachricht eingeben.', 'error'); return; }
 
     const btn = document.getElementById('btn-support');
     btn.disabled = true; btn.textContent = 'Wird gesendet...';
@@ -191,7 +204,10 @@ async function sendSupport() {
         });
         const data = await res.json();
         if (data.success) {
-            showMsg('Nachricht gesendet! Wir melden uns innerhalb von 24 Stunden.', 'success');
+            const isGdpr = document.getElementById('s-subject').value === 'Datenlöschung (DSGVO)';
+            showMsg(isGdpr
+                ? 'Löschantrag eingegangen. Wir bearbeiten ihn innerhalb von 30 Tagen.'
+                : 'Nachricht gesendet! Wir melden uns innerhalb von 24 Stunden.', 'success');
             document.getElementById('s-message').value = '';
         } else {
             showMsg('Fehler: ' + (data.error || 'Unbekannter Fehler'), 'error');
