@@ -37,6 +37,9 @@
         .tool-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-top: 12px; }
         .badge-live { background: #3fb95020; color: #3fb950; border: 1px solid #3fb95040; }
         .badge-soon { background: #d2992020; color: #d29920; border: 1px solid #d2992040; }
+        .manage-bar { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); text-align: center; }
+        .btn-manage { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 9px 20px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+        .btn-manage:hover { color: var(--text-primary); border-color: var(--text-secondary); }
     </style>
 </head>
 <body>
@@ -100,8 +103,41 @@
                 <span class="tool-badge badge-live">Live</span>
             </a>
         </div>
+        <div class="manage-bar">
+            <button class="btn-manage" onclick="openPortal()">Abo verwalten · Kündigen · Zahlungsmethode ändern</button>
+        </div>
     </div>
     <script>
+        async function openPortal() {
+            const btn = document.querySelector('.btn-manage');
+            btn.textContent = 'Wird geladen...';
+            btn.disabled = true;
+            try {
+                const { data: { session } } = await sb.auth.getSession();
+                const res = await fetch(SUPABASE_URL + '/functions/v1/create-portal-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + session.access_token,
+                        'apikey': SUPABASE_ANON_KEY,
+                    },
+                    body: '{}',
+                });
+                const data = await res.json();
+                if (data.url) {
+                    location.href = data.url;
+                } else {
+                    alert('Fehler: ' + (data.error || 'Portal konnte nicht geöffnet werden'));
+                    btn.textContent = 'Abo verwalten · Kündigen · Zahlungsmethode ändern';
+                    btn.disabled = false;
+                }
+            } catch(e) {
+                alert('Fehler: ' + e.message);
+                btn.textContent = 'Abo verwalten · Kündigen · Zahlungsmethode ändern';
+                btn.disabled = false;
+            }
+        }
+
         // Theme toggle
         const savedTheme = localStorage.getItem('ppc_theme') || 'light';
         document.documentElement.setAttribute('data-theme', savedTheme);

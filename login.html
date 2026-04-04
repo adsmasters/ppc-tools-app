@@ -144,6 +144,8 @@ document.getElementById('reg-btn').addEventListener('click', async () => {
         let msg = 'Fehler: ' + error.message;
         if (error.message.includes('rate limit') || error.message.includes('429')) {
             msg = 'Zu viele Registrierungen in kurzer Zeit. Bitte warte 1 Stunde und versuche es erneut.';
+        } else if (error.message.toLowerCase().includes('already registered') || error.message.toLowerCase().includes('already been registered') || error.message.toLowerCase().includes('user already')) {
+            msg = 'Diese E-Mail-Adresse ist bereits registriert. Bitte melde dich über den Login-Tab an oder setze dein Passwort zurück.';
         }
         showMsg(msg, 'error'); btn.disabled = false; btn.textContent = 'Konto erstellen'; return;
     }
