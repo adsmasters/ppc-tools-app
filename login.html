@@ -191,11 +191,9 @@ document.addEventListener('keydown', e => {
     else document.getElementById('reset-btn').click();
 });
 
-// Check URL params for plan pre-selection
+// Check URL params for tab pre-selection
 const params = new URLSearchParams(location.search);
-if (params.get('plan')) {
-    // Do NOT store plan in sessionStorage here - causes redirect loops
-    // Just switch to register tab for new users
+if (params.get('plan') || params.get('mode') === 'register') {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
     document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
     document.querySelector('[data-tab="register"]').classList.add('active');

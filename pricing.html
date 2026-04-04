@@ -127,7 +127,7 @@ async function checkout(plan) {
     }
     if (!session) {
         sessionStorage.removeItem('ppc_selected_plan');
-        location.href = 'login.html';
+        location.href = 'login.html?mode=register';
         return;
     }
     currentSession = session;
