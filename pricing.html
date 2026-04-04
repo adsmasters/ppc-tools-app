@@ -45,10 +45,10 @@
 </head>
 <body>
     <div class="topbar">
-        <a href="index.html"><img src="logo.png" alt="AdsMasters"></a>
+        <a href="https://adsmasters.github.io/ppc-tools"><img src="logo.png" alt="AdsMasters"></a>
         <div style="display:flex;align-items:center;gap:16px;">
-            <a href="index.html" id="backLink">Zurück</a>
-            <button onclick="ppcLogoutFromPricing()" style="background:transparent;border:1px solid #ddd;color:#555;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">Logout</button>
+            <a href="https://adsmasters.github.io/ppc-tools" id="backLink">Zurück zur Website</a>
+            <button id="logoutBtn" onclick="ppcLogoutFromPricing()" style="display:none;background:transparent;border:1px solid #ddd;color:#555;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600;">Logout</button>
         </div>
     </div>
     <div class="container">
@@ -97,6 +97,7 @@ let isLoggedIn = false;
     if (session) {
         currentSession = session;
         isLoggedIn = true;
+        document.getElementById('logoutBtn').style.display = 'inline-block';
 
         const { data: sub } = await sb.from('ppc_subscriptions')
             .select('plan, status')
