@@ -69,6 +69,17 @@ if (document.body) {
     window.ppcPlan = sub.plan;
     window.ppcSub = sub;
     document.body.style.visibility = 'visible';
+
+    // Append legal footer to all authenticated pages
+    const footer = document.createElement('footer');
+    footer.style.cssText = 'text-align:center;padding:24px 0 32px;font-size:12px;border-top:1px solid var(--border,#e0e0e0);margin-top:48px;';
+    footer.innerHTML = `
+        <a href="agb.html" style="color:var(--text-secondary,#888);text-decoration:none;margin:0 12px;">AGB</a>
+        <a href="datenschutz.html" style="color:var(--text-secondary,#888);text-decoration:none;margin:0 12px;">Datenschutz</a>
+        <a href="contact.html" style="color:var(--text-secondary,#888);text-decoration:none;margin:0 12px;">Kontakt</a>
+        <span style="color:var(--text-secondary,#aaa);margin:0 12px;">© 2026 AdsMasters</span>
+    `;
+    document.body.appendChild(footer);
 })();
 
 // Logout helper
