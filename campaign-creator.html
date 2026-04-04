@@ -158,10 +158,6 @@
         .btn-import:hover { color: var(--text-primary); border-color: var(--text-secondary); }
         .import-input { display: none; }
 
-        .preset-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
-        .preset-bar select { flex: 1; min-width: 150px; }
-        .preset-bar .btn-sm { white-space: nowrap; }
-
         .accumulator-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; padding: 10px 14px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px; }
         .acc-count { font-size: 14px; font-weight: 600; flex: 1; }
         .acc-products { margin-bottom: 20px; }
@@ -189,8 +185,6 @@
             .layout { grid-template-columns: 1fr; }
             .topbar { padding: 0 16px; }
             .main { padding: 16px; }
-            .preset-bar { flex-direction: column; align-items: stretch; }
-            .preset-bar select { min-width: 100%; }
         }
         @media (max-width: 600px) {
             .topbar { height: auto; padding: 10px 12px; flex-wrap: wrap; gap: 8px; }
@@ -230,15 +224,6 @@
     <div class="page-header">
         <h1 class="page-title" data-i18n="page_title">Kampagnen Ersteller</h1>
         <p class="page-sub" data-i18n="page_sub">Amazon Sponsored Products Bulk Upload Sheet Generator</p>
-    </div>
-
-    <!-- Vorlage Bar -->
-    <div class="preset-bar">
-        <select id="presetSelect"><option value="">— Vorlage wählen —</option></select>
-        <button class="btn-sm" onclick="loadPreset()">Laden</button>
-        <button class="btn-sm" onclick="savePreset()">Speichern</button>
-        <button class="btn-sm danger" onclick="deletePreset()">Löschen</button>
-        <input type="file" id="presetImportFile" class="import-input" accept=".json">
     </div>
 
     <div class="layout">
@@ -416,7 +401,7 @@
 
             <!-- STEP 4 -->
             <div class="card">
-                <div class="card-title"><span class="step">4</span> <span data-i18n="step4_title">Kampagnen-Vorlagen</span></div>
+                <div class="card-title"><span class="step">4</span> <span data-i18n="step4_title">Kampagnen-Typen</span></div>
 
                 <!-- Auto Campaign -->
                 <div class="campaign-option" id="opt-auto">
@@ -648,7 +633,7 @@ const UI = {
         step1_title: 'Beworbene Produkte',
         step2_title: 'Keywords & Targeting',
         step3_title: 'Kampagnen-Einstellungen',
-        step4_title: 'Kampagnen-Vorlagen',
+        step4_title: 'Kampagnen-Typen',
         toggle_vendor: 'Vendor: ASIN Listen',
         toggle_seller: 'Seller: SKU Listen',
         lbl_marketplace: 'Marketplace',
@@ -772,7 +757,7 @@ const UI = {
         step1_title: 'Products to Advertise',
         step2_title: 'Keywords & Targeting',
         step3_title: 'Campaign Settings',
-        step4_title: 'Campaign Templates',
+        step4_title: 'Campaign Types',
         toggle_vendor: 'Vendor: ASIN Lists',
         toggle_seller: 'Seller: SKU Lists',
         lbl_marketplace: 'Marketplace',
@@ -982,10 +967,6 @@ document.addEventListener('keydown', function(e) {
         e.preventDefault();
         addToAccumulator();
     }
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        e.preventDefault();
-        savePreset();
-    }
 });
 
 // --- Drag & Drop on Textareas ---
@@ -1074,25 +1055,6 @@ function appendToTextarea(textarea, values) {
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
 }
 
-// --- Presets (localStorage) ---
-const PRESET_KEY = 'ppc_presets';
-
-function getPresets() {
-    try { return JSON.parse(localStorage.getItem(PRESET_KEY)) || {}; } catch { return {}; }
-}
-
-function refreshPresetDropdown() {
-    const sel = document.getElementById('presetSelect');
-    const presets = getPresets();
-    sel.innerHTML = '<option value="">— Vorlage wählen —</option>';
-    Object.keys(presets).sort().forEach(name => {
-        const opt = document.createElement('option');
-        opt.value = name;
-        opt.textContent = name;
-        sel.appendChild(opt);
-    });
-}
-
 function gatherFormState() {
     const state = { mode, lang };
     // Product (single product)
@@ -1166,69 +1128,6 @@ function applyFormState(state) {
     updateCounter('compKw', 'compKwAlloc', 'compKwCounter');
     updateCounter('compAsins', 'compAsinAlloc', 'compAsinCounter');
 }
-
-function savePreset() {
-    const name = prompt('Vorlagen-Name eingeben:');
-    if (!name || !name.trim()) return;
-    const presets = getPresets();
-    presets[name.trim()] = gatherFormState();
-    localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
-    refreshPresetDropdown();
-    document.getElementById('presetSelect').value = name.trim();
-}
-
-function loadPreset() {
-    const name = document.getElementById('presetSelect').value;
-    if (!name) return;
-    const presets = getPresets();
-    if (!presets[name]) return;
-    applyFormState(presets[name]);
-}
-
-function deletePreset() {
-    const name = document.getElementById('presetSelect').value;
-    if (!name) return;
-    if (!confirm('Vorlage "' + name + '" wirklich löschen?')) return;
-    const presets = getPresets();
-    delete presets[name];
-    localStorage.setItem(PRESET_KEY, JSON.stringify(presets));
-    refreshPresetDropdown();
-}
-
-function exportPresets() {
-    const presets = getPresets();
-    if (Object.keys(presets).length === 0) return;
-    const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'ppc-presets.json';
-    a.click();
-    URL.revokeObjectURL(url);
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    refreshPresetDropdown();
-
-    document.getElementById('presetImportFile').addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = function(evt) {
-            try {
-                const imported = JSON.parse(evt.target.result);
-                const existing = getPresets();
-                const merged = { ...existing, ...imported };
-                localStorage.setItem(PRESET_KEY, JSON.stringify(merged));
-                refreshPresetDropdown();
-                const count = Object.keys(imported).length;
-                showSuccess(count + ' Vorlage(n) importiert.');
-            } catch { /* invalid JSON */ }
-        };
-        reader.readAsText(file);
-        e.target.value = '';
-    });
-});
 
 // --- State ---
 let mode = 'seller'; // vendor or seller
