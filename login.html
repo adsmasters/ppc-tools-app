@@ -63,7 +63,12 @@
             <div class="form-group"><label>Firmenname</label><input type="text" id="r-company" placeholder="Muster GmbH"></div>
             <div class="form-group"><label>E-Mail</label><input type="email" id="r-email" placeholder="deine@email.de"></div>
             <div class="form-group"><label>Passwort (min. 8 Zeichen)</label><input type="password" id="r-pass" placeholder="Passwort"></div>
+            <div class="form-group"><label>Passwort bestätigen</label><input type="password" id="r-pass2" placeholder="Passwort wiederholen"></div>
             <button class="btn" id="reg-btn">Konto erstellen</button>
+            <div id="resend-section" style="display:none;margin-top:16px;text-align:center;">
+                <p style="font-size:0.8rem;color:#6b7280;margin-bottom:8px;">Keine E-Mail erhalten? Bitte auch den <strong>Spam-Ordner</strong> prüfen.</p>
+                <button type="button" class="link-btn" id="resend-btn" style="margin-top:0;">Bestätigungsmail erneut senden</button>
+            </div>
         </div>
     </div>
 </div>
@@ -115,13 +120,16 @@ document.getElementById('login-btn').addEventListener('click', async () => {
 });
 
 // Register
+let lastRegisteredEmail = '';
 document.getElementById('reg-btn').addEventListener('click', async () => {
     const company = document.getElementById('r-company').value.trim();
     const email = document.getElementById('r-email').value.trim();
     const pass = document.getElementById('r-pass').value;
-    if (!company || !email || !pass) { showMsg('Bitte alle Felder ausfüllen', 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('Bitte eine gültige E-Mail-Adresse eingeben', 'error'); return; }
-    if (pass.length < 8) { showMsg('Passwort muss mind. 8 Zeichen lang sein', 'error'); return; }
+    const pass2 = document.getElementById('r-pass2').value;
+    if (!company || !email || !pass || !pass2) { showMsg('Bitte alle Felder ausfüllen.', 'error'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('Bitte eine gültige E-Mail-Adresse eingeben.', 'error'); return; }
+    if (pass.length < 8) { showMsg('Passwort muss mind. 8 Zeichen lang sein.', 'error'); return; }
+    if (pass !== pass2) { showMsg('Die Passwörter stimmen nicht überein.', 'error'); return; }
     const btn = document.getElementById('reg-btn');
     btn.disabled = true; btn.textContent = 'Erstelle Konto...';
     const { data, error } = await sb.auth.signUp({
@@ -140,7 +148,6 @@ document.getElementById('reg-btn').addEventListener('click', async () => {
         showMsg(msg, 'error'); btn.disabled = false; btn.textContent = 'Konto erstellen'; return;
     }
     if (data.user) {
-        // Try to save profile (might fail if user already exists, that's ok)
         try { await sb.from('ppc_profiles').upsert({ user_id: data.user.id, company_name: company }); } catch(e) {}
         const { data: { session } } = await sb.auth.getSession();
         if (session) {
@@ -148,8 +155,22 @@ document.getElementById('reg-btn').addEventListener('click', async () => {
             return;
         }
     }
-    showMsg('Konto erstellt! Bitte bestätige deine E-Mail, dann melde dich an.', 'success');
+    lastRegisteredEmail = email;
+    showMsg('Konto erstellt! Bitte bestätige deine E-Mail-Adresse. Tipp: Auch den Spam-Ordner prüfen.', 'success');
+    document.getElementById('resend-section').style.display = 'block';
     btn.disabled = false; btn.textContent = 'Konto erstellen';
+});
+
+// Resend confirmation email
+document.getElementById('resend-btn').addEventListener('click', async () => {
+    const email = lastRegisteredEmail || document.getElementById('r-email').value.trim();
+    if (!email) { showMsg('Bitte zuerst registrieren.', 'error'); return; }
+    const btn = document.getElementById('resend-btn');
+    btn.disabled = true; btn.textContent = 'Wird gesendet...';
+    const { error } = await sb.auth.resend({ type: 'signup', email });
+    if (error) { showMsg('Fehler beim Senden: ' + error.message, 'error'); }
+    else { showMsg('Bestätigungsmail wurde erneut an ' + email + ' gesendet. Bitte auch den Spam-Ordner prüfen.', 'success'); }
+    btn.disabled = false; btn.textContent = 'Bestätigungsmail erneut senden';
 });
 
 // Forgot password
