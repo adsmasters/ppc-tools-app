@@ -681,6 +681,18 @@ function buildSectionC() {
     // Wasted Ad Spend: Search Term Zeilen (was der Kunde gesucht hat)
     const searchTermRows = allRows.filter(r => r.format === 'SP' && r.keyword && !r.entity && isSearchTermSheet(r.sheetName));
 
+    // DEBUG
+    const spAllRows = allRows.filter(r => r.format === 'SP');
+    const spNoEntity = spAllRows.filter(r => !r.entity);
+    const spSearchSheet = spNoEntity.filter(r => isSearchTermSheet(r.sheetName));
+    console.log('[DEBUG] allRows total:', allRows.length);
+    console.log('[DEBUG] SP rows:', spAllRows.length);
+    console.log('[DEBUG] SP no-entity rows:', spNoEntity.length);
+    console.log('[DEBUG] SP search-term-sheet rows:', spSearchSheet.length);
+    console.log('[DEBUG] searchTermRows:', searchTermRows.length);
+    console.log('[DEBUG] sample sheetNames (SP no-entity):', [...new Set(spNoEntity.map(r => r.sheetName))]);
+    console.log('[DEBUG] sample keywords (first 3 ST rows):', searchTermRows.slice(0, 3).map(r => r.keyword));
+
     // Keywords, Top Suchbegriffe oder Wasted
     const kwRows = spMode === 'keywords' ? keywordRows : searchTermRows;
     if (kwRows.length === 0) { section.classList.add('hidden'); return; }
