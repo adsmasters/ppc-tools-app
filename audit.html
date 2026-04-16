@@ -676,7 +676,8 @@ function buildSectionC() {
     const keywordRows = allRows.filter(r => r.format === 'SP' && r.keyword && kwPtEntities.some(e => r.entity.includes(e)) && !r.entity.includes('negat'));
 
     // Wasted Ad Spend: Search Term Zeilen (was der Kunde gesucht hat)
-    const searchTermRows = allRows.filter(r => r.format === 'SP' && r.keyword && !r.entity && r.sheetName && r.sheetName.includes('Suchbegriff'));
+    const isSearchTermSheet = sn => sn && (sn.includes('Suchbegriff') || sn.toLowerCase().includes('search term'));
+    const searchTermRows = allRows.filter(r => r.format === 'SP' && r.keyword && !r.entity && isSearchTermSheet(r.sheetName));
 
     // Keywords, Top Suchbegriffe oder Wasted
     const kwRows = spMode === 'keywords' ? keywordRows : searchTermRows;
@@ -946,7 +947,7 @@ function buildSectionSB() {
 
     const stMap = {};
     sbSTrows.forEach(r => {
-        const searchterm = r.sheetName && r.sheetName.includes('Suchbegriff') ? r.keyword : '';
+        const searchterm = isSearchTermSheet(r.sheetName) ? r.keyword : '';
         if (!searchterm) return;
         if (sbView === 'account') {
             const key = searchterm.toLowerCase().trim();
