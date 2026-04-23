@@ -1,6 +1,14 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-962309237"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'AW-962309237');
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AdsMasters PPC Tools</title>
@@ -168,6 +176,22 @@
             localStorage.setItem('ppc_theme', next);
             document.getElementById('themeToggle').innerHTML = next === 'light' ? '&#9790;' : '&#9788;';
         }
+    </script>
+    <!-- Google Ads Conversion Tracking: fires once after successful Stripe checkout -->
+    <script>
+      (function() {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('checkout') === 'success') {
+          gtag('event', 'conversion', {
+            'send_to': 'AW-962309237/xamHCIOGp6EcEPXY7soD',
+            'transaction_id': ''
+          });
+          // Remove checkout param so a page refresh doesn't re-fire
+          params.delete('checkout');
+          var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+          history.replaceState(null, '', newUrl);
+        }
+      })();
     </script>
 </body>
 </html>
