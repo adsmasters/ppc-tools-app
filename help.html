@@ -113,7 +113,8 @@
             <a href="#cc-edit">Produkte bearbeiten</a>
             <a href="#cc-keywords">Keywords & Targeting</a>
             <a href="#cc-settings">Kampagnen-Einstellungen</a>
-            <a href="#cc-templates">Kampagnen-Vorlagen</a>
+            <a href="#cc-templates">Kampagnen-Typen</a>
+            <a href="#cc-profiles">Vorlagen speichern & laden</a>
             <a href="#cc-tips">Tipps</a>
         </div>
         <div class="toc-group">
@@ -250,7 +251,7 @@
     </div>
 
     <div class="section" id="cc-templates">
-        <h3>Kampagnen-Vorlagen</h3>
+        <h3>Kampagnen-Typen</h3>
         <p>Wähle aus, welche Kampagnentypen erstellt werden sollen:</p>
         <ul>
             <li><strong>Auto-Kampagne:</strong> Mit Sub-Targeting (Enge/Entfernte Übereinstimmung, Ersatz, Ergänzungen)</li>
@@ -262,12 +263,26 @@
         </ul>
     </div>
 
+    <div class="section" id="cc-profiles">
+        <h3>Vorlagen speichern & laden</h3>
+        <p>Kampagnen-Konfigurationen können als benannte Vorlagen gespeichert werden – z.B. "Produkt A", "Produkt B". So müssen Einstellungen nicht jedes Mal neu eingegeben werden.</p>
+        <ul>
+            <li><strong>Speichern:</strong> Vorlagenname eingeben und auf "Speichern" klicken – alle aktuellen Formularwerte werden gesichert</li>
+            <li><strong>Laden:</strong> Gespeicherte Vorlage aus der Liste wählen und auf "Laden" klicken – das Formular wird vollständig befüllt</li>
+            <li><strong>Löschen:</strong> Vorlage über das ✕-Symbol entfernen</li>
+        </ul>
+        <div class="card" style="border-color: rgba(99,179,237,0.4); background: rgba(99,179,237,0.06);">
+            <div class="card-label">&#128274; Lokale Speicherung</div>
+            <p>Vorlagen werden <strong>lokal im Browser gespeichert</strong> (localStorage) – nicht in der Datenbank. Sie sind nur auf dem jeweiligen Gerät und Browser verfügbar. Beim Löschen von Browser-Cache oder Cookies gehen sie verloren.</p>
+        </div>
+    </div>
+
     <div class="section" id="cc-tips">
         <h3>Tipps</h3>
         <ul>
             <li><strong>Cross-Negation aktivieren:</strong> Verhindert Keyword-Kannibalisierung zwischen Auto- und manuellen Kampagnen</li>
             <li><strong>Keyword Allocation nutzen:</strong> Bei vielen Keywords auf 10-15 pro Kampagne aufteilen</li>
-            <li><strong>Presets speichern:</strong> Grundkonfigurationen als Preset speichern und nur Keywords/ASINs anpassen</li>
+            <li><strong>Vorlagen nutzen:</strong> Grundkonfigurationen als Vorlage speichern und pro Produkt nur Keywords/ASINs anpassen</li>
         </ul>
     </div>
 
@@ -356,6 +371,10 @@
     <div class="section" id="bo-overview">
         <h3>Übersicht</h3>
         <p>Optimiert Gebote für bestehende Keywords und Product Targeting basierend auf ROAS-Korridoren. Erstellt ein Update Bulk Sheet das direkt bei Amazon hochgeladen werden kann.</p>
+        <div class="card" style="border-color: rgba(255,200,0,0.4); background: rgba(255,200,0,0.05);">
+            <div class="card-label">⚠ Aktuell nur Sponsored Products (SP)</div>
+            <p>Der Bid Optimizer unterstützt derzeit ausschließlich Sponsored Products Kampagnen. Beim Upload eines gemischten Bulk Sheets (SP + SB + SD) werden SB- und SD-Zeilen automatisch übersprungen. SB/SD-Unterstützung folgt in Kürze.</p>
+        </div>
     </div>
 
     <div class="section" id="bo-corridors">
@@ -377,6 +396,10 @@
             <li><strong>Pause:</strong> Keywords/Targets in diesem Bereich deaktivieren (State = Paused)</li>
         </ul>
         <p>Korridore können mit + / - hinzugefügt oder entfernt werden.</p>
+        <div class="card" style="border-color: rgba(99,179,237,0.4); background: rgba(99,179,237,0.06);">
+            <div class="card-label">&#128274; Korridore werden lokal gespeichert</div>
+            <p>Alle Korridor-Einstellungen sowie globale Min./Max.-Gebote und Ausschlussfilter werden automatisch im Browser gespeichert und beim nächsten Besuch wiederhergestellt. Die Daten liegen nur auf diesem Gerät – beim Löschen von Browser-Cache oder Cookies gehen sie verloren.</p>
+        </div>
     </div>
 
     <div class="section" id="bo-exclusions">

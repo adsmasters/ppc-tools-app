@@ -239,6 +239,21 @@
     <div class="layout">
         <!-- LEFT COLUMN -->
         <div class="col-left">
+
+            <!-- PROFILES -->
+            <div class="card" style="padding:16px 20px;">
+                <div class="card-title" style="margin-bottom:10px;">&#128190; Vorlagen</div>
+                <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;background:rgba(99,179,237,0.08);border:1px solid rgba(99,179,237,0.3);border-radius:8px;margin-bottom:12px;font-size:12px;color:var(--text-secondary);line-height:1.5;">
+                    <span style="font-size:13px;flex-shrink:0;">&#128274;</span>
+                    <span><strong>Vorlagen werden lokal in deinem Browser gespeichert</strong> – nicht in der Datenbank. Sie sind nur auf diesem Gerät verfügbar und gehen beim Löschen von Browser-Cache oder Cookies verloren.</span>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:10px;">
+                    <input type="text" id="profileNameInput" placeholder="Vorlagenname, z.B. Produkt A" style="flex:1;padding:7px 10px;font-size:13px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);">
+                    <button onclick="saveProfile()" style="padding:7px 14px;font-size:13px;background:var(--accent);color:#fff;border:none;border-radius:6px;cursor:pointer;white-space:nowrap;">Speichern</button>
+                </div>
+                <div id="profilesList" style="display:flex;flex-direction:column;gap:6px;"></div>
+            </div>
+
             <!-- STEP 1 -->
             <div class="card">
                 <div class="card-title"><span class="step">1</span> <span data-i18n="step1_title">Beworbene Produkte</span></div>
@@ -960,9 +975,10 @@ function updateProductListLabel() {
 (function() {
     // Defer to after DOM is ready
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() { applyUILang(uiLang); });
+        document.addEventListener('DOMContentLoaded', function() { applyUILang(uiLang); renderProfilesList(); });
     } else {
         applyUILang(uiLang);
+        renderProfilesList();
     }
 })();
 
@@ -1058,6 +1074,55 @@ function appendToTextarea(textarea, values) {
     const newVal = existing ? existing + '\n' + values.join('\n') : values.join('\n');
     textarea.value = newVal;
     textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+// --- Profiles (localStorage) ---
+const PROFILES_KEY = 'campaignCreator_profiles';
+
+function getProfiles() {
+    try { return JSON.parse(localStorage.getItem(PROFILES_KEY) || '{}'); } catch(e) { return {}; }
+}
+
+function saveProfile() {
+    const name = document.getElementById('profileNameInput').value.trim();
+    if (!name) { alert('Bitte einen Vorlagennamen eingeben.'); return; }
+    const profiles = getProfiles();
+    profiles[name] = gatherFormState();
+    try {
+        localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+        document.getElementById('profileNameInput').value = '';
+        renderProfilesList();
+    } catch(e) { alert('Speichern fehlgeschlagen.'); }
+}
+
+function loadProfile(name) {
+    const profiles = getProfiles();
+    if (profiles[name]) applyFormState(profiles[name]);
+}
+
+function deleteProfile(name) {
+    if (!confirm('Vorlage "' + name + '" löschen?')) return;
+    const profiles = getProfiles();
+    delete profiles[name];
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+    renderProfilesList();
+}
+
+function renderProfilesList() {
+    const profiles = getProfiles();
+    const container = document.getElementById('profilesList');
+    const names = Object.keys(profiles);
+    if (names.length === 0) {
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-secondary);">Noch keine Vorlagen gespeichert.</div>';
+        return;
+    }
+    container.innerHTML = names.map(name =>
+        '<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;">' +
+        '<span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + name + '">' + name + '</span>' +
+        '<button onclick="loadProfile(' + JSON.stringify(name) + ')" style="padding:4px 10px;font-size:12px;background:var(--accent);color:#fff;border:none;border-radius:5px;cursor:pointer;">Laden</button>' +
+        '<button onclick="deleteProfile(' + JSON.stringify(name) + ')" style="padding:4px 8px;font-size:12px;background:transparent;color:var(--error);border:1px solid var(--error);border-radius:5px;cursor:pointer;">&#x2715;</button>' +
+        '</div>'
+    ).join('');
 }
 
 function gatherFormState() {
