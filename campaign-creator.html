@@ -772,7 +772,9 @@ const UI = {
         err_invalid_neg_asin: 'Ung\u00fcltige Negative Targeting-ASIN: "{0}"',
         err_no_campaigns: 'Keine Kampagnen ausgew\u00e4hlt oder keine Keywords/ASINs eingegeben.',
         err_no_export_data: 'Keine Daten zum Exportieren.',
-        warn_dupes_removed: '{0} doppelte {1} entfernt.'
+        warn_dupes_removed: '{0} doppelte {1} entfernt.',
+        warn_checked_no_kw: 'Kampagnentyp „{0}" ist ausgewählt, aber es wurden keine Keywords/ASINs eingegeben – diese Kampagne wird übersprungen.',
+        warn_kw_no_checked: 'Keywords/ASINs für „{0}" wurden eingegeben, aber kein passender Kampagnentyp ist ausgewählt – diese Eingabe wird ignoriert.'
     },
     en: {
         nav_dashboard: 'Dashboard',
@@ -896,7 +898,9 @@ const UI = {
         err_invalid_neg_asin: 'Invalid Negative Targeting ASIN: "{0}"',
         err_no_campaigns: 'No campaigns selected or no keywords/ASINs entered.',
         err_no_export_data: 'No data to export.',
-        warn_dupes_removed: '{0} duplicate {1} removed.'
+        warn_dupes_removed: '{0} duplicate {1} removed.',
+        warn_checked_no_kw: 'Campaign type "{0}" is selected but no keywords/ASINs have been entered – this campaign will be skipped.',
+        warn_kw_no_checked: 'Keywords/ASINs for "{0}" have been entered but no matching campaign type is selected – this input will be ignored.'
     }
 };
 
@@ -1746,6 +1750,31 @@ function generateRows() {
     const genericAllocNum = parseInt(getLines('genericAlloc')[0], 10) || 0;
     const compKwAllocNum = parseInt(getLines('compKwAlloc')[0], 10) || 0;
     const compAsinAllocNum = parseInt(getLines('compAsinAlloc')[0], 10) || 0;
+
+    // Validation: campaign type checked but no keywords/ASINs, or vice versa
+    const chkGeneric = document.getElementById('chk-generic-exact').checked || document.getElementById('chk-generic-broad').checked;
+    const chkBrandKw = document.getElementById('chk-brand-exact').checked || document.getElementById('chk-brand-broad').checked || document.getElementById('chk-brand-phrase').checked;
+    const chkCompKw  = document.getElementById('chk-comp-exact').checked  || document.getElementById('chk-comp-broad').checked;
+    const chkPtBrand = document.getElementById('chk-pt-brand').checked;
+    const chkPtComp  = document.getElementById('chk-pt-comp').checked;
+    const chkSingle  = document.getElementById('chk-single').checked;
+
+    const groups = [
+        { checked: chkGeneric,  items: genericKws,      label: kwLabels.generic },
+        { checked: chkBrandKw,  items: brandKws,        label: kwLabels.brand },
+        { checked: chkCompKw,   items: compKws,         label: kwLabels.comp },
+        { checked: chkPtBrand,  items: brandAsinsList,  label: kwLabels.brandAsins },
+        { checked: chkPtComp,   items: compAsinsList,   label: kwLabels.compAsins },
+        { checked: chkSingle,   items: singleKws,       label: kwLabels.single },
+    ];
+    groups.forEach(function(g) {
+        if (g.checked && g.items.length === 0) {
+            warnings.push(uiDict.warn_checked_no_kw.replace('{0}', g.label));
+        }
+        if (!g.checked && g.items.length > 0) {
+            warnings.push(uiDict.warn_kw_no_checked.replace('{0}', g.label));
+        }
+    });
 
     // Helper: create empty row
     function emptyRow() {
