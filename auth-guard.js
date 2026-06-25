@@ -63,8 +63,14 @@ if (document.body) {
             .select('plan, status, current_period_end')
             .eq('user_id', session.user.id)
             .single();
-        // Allow access if active, OR cancelled but period hasn't ended yet
-        if (data && (data.status === 'active' || data.status === 'cancelled')) {
+        // Status is the source of truth (only Stripe webhooks set it):
+        // - active / past_due (dunning): grant access regardless of current_period_end.
+        //   A stale period_end must never lock out a still-paying customer.
+        // - cancelled: grant only until the period actually ends (wind-down).
+        if (data && (data.status === 'active' || data.status === 'past_due')) {
+            sub = data; break;
+        }
+        if (data && data.status === 'cancelled') {
             const expired = data.current_period_end && new Date(data.current_period_end) < new Date();
             if (!expired) { sub = data; break; }
         }
@@ -73,7 +79,7 @@ if (document.body) {
     if (loadingOverlay) loadingOverlay.remove();
 
     // No valid subscription -> pricing page
-    if (!sub || (sub.status !== 'active' && sub.status !== 'cancelled')) {
+    if (!sub) {
         location.href = 'pricing.html';
         return;
     }
