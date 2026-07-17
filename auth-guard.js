@@ -63,8 +63,12 @@ if (document.body) {
 
     for (let i = 0; i < maxAttempts; i++) {
         if (i > 0) await new Promise(r => setTimeout(r, 1500));
+        // select('*') on purpose: naming past_due_since explicitly makes the whole
+        // query fail with a 400 if the column isn't there yet, which would lock out
+        // every paying customer. With '*' a missing column is merely undefined —
+        // active/cancelled keep working and only past_due falls back to no access.
         const { data } = await sb.from('ppc_subscriptions')
-            .select('plan, status, current_period_end, past_due_since')
+            .select('*')
             .eq('user_id', session.user.id)
             .single();
         // Status is the source of truth (only Stripe webhooks set it):
