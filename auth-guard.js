@@ -7,6 +7,10 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const ALL_TOOLS = ['dashboard', 'campaign-creator', 'audit', 'negative-manager', 'keyword-harvesting', 'wasted-spend', 'bid-optimizer', 'asin-optimizer', 'time-of-day', 'tacos-analyse', 'impression-share', 'invoices', 'contact', 'tutorials'];
 const PUBLIC_PAGES = ['index', 'landing', 'pricing', 'reset-password', 'help', 'login'];
 
+// Grace period after a failed payment: access stays open this many days from the
+// FIRST failure, so a temporarily declined card doesn't lock out a paying customer.
+const PAST_DUE_GRACE_DAYS = 3;
+
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Hide body until auth check completes (wait for DOM if script is in <head>)
@@ -60,19 +64,25 @@ if (document.body) {
     for (let i = 0; i < maxAttempts; i++) {
         if (i > 0) await new Promise(r => setTimeout(r, 1500));
         const { data } = await sb.from('ppc_subscriptions')
-            .select('plan, status, current_period_end')
+            .select('plan, status, current_period_end, past_due_since')
             .eq('user_id', session.user.id)
             .single();
         // Status is the source of truth (only Stripe webhooks set it):
-        // - active / past_due (dunning): grant access regardless of current_period_end.
-        //   A stale period_end must never lock out a still-paying customer.
+        // - active: grant regardless of current_period_end. A stale period_end must
+        //   never lock out a still-paying customer.
+        // - past_due: grant only inside the grace window, measured from the FIRST
+        //   failed payment. A briefly declined card keeps working; someone who stopped
+        //   paying loses access instead of coasting through all of Stripe's retries.
         // - cancelled: grant only until the period actually ends (wind-down).
-        if (data && (data.status === 'active' || data.status === 'past_due')) {
-            sub = data; break;
+        // A missing timestamp counts as expired — never grant access on absent data.
+        if (data && data.status === 'active') { sub = data; break; }
+        if (data && data.status === 'past_due') {
+            const since = data.past_due_since ? new Date(data.past_due_since) : null;
+            if (since && Date.now() < since.getTime() + PAST_DUE_GRACE_DAYS * 86400000) { sub = data; break; }
         }
         if (data && data.status === 'cancelled') {
-            const expired = data.current_period_end && new Date(data.current_period_end) < new Date();
-            if (!expired) { sub = data; break; }
+            const until = data.current_period_end ? new Date(data.current_period_end) : null;
+            if (until && until > new Date()) { sub = data; break; }
         }
     }
 
