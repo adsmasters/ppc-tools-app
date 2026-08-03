@@ -60,6 +60,18 @@
         .btn-download:hover { filter: brightness(1.15); }
         .msg { padding: 12px 16px; border-radius: 8px; font-size: 14px; margin-bottom: 20px; }
         .msg-error { background: #f8514920; color: #f85149; border: 1px solid #f8514940; }
+        .settings-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 32px; }
+        .settings-card h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .settings-card p { font-size: 13px; color: var(--text-secondary); margin-bottom: 14px; }
+        .settings-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .settings-row input { flex: 1; min-width: 220px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 14px; color: var(--text-primary); }
+        .settings-row input:focus { outline: none; border-color: var(--accent); }
+        .btn-save { background: var(--accent); color: #fff; border: none; padding: 8px 18px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .btn-save:hover { filter: brightness(1.15); }
+        .btn-save:disabled { opacity: 0.6; cursor: default; }
+        .settings-status { font-size: 13px; margin-top: 10px; }
+        .settings-status.ok { color: #3fb950; }
+        .settings-status.err { color: #f85149; }
         @media (max-width: 640px) {
             .topbar { padding: 0 16px; }
             .main { padding: 24px 16px; }
@@ -87,6 +99,15 @@
         <h1 class="page-title">Rechnungen</h1>
         <p class="page-sub">Alle Rechnungen aus deinem Abo im Überblick.</p>
         <div id="msg"></div>
+        <div class="settings-card">
+            <h2>Rechnungen automatisch per E-Mail erhalten</h2>
+            <p>Neue Rechnungen schicken wir dir direkt als PDF-Anhang an diese Adresse — z.&nbsp;B. dein Buchhaltungs-Postfach. Feld leeren und speichern, um den Versand zu deaktivieren.</p>
+            <div class="settings-row">
+                <input type="email" id="invoiceEmail" placeholder="rechnungen@deine-firma.de" autocomplete="email">
+                <button class="btn-save" id="saveInvoiceEmail" onclick="saveInvoiceEmail()">Speichern</button>
+            </div>
+            <div class="settings-status" id="invoiceEmailStatus"></div>
+        </div>
         <div id="content">
             <div class="loading" id="loading">Rechnungen werden geladen...</div>
         </div>
@@ -126,6 +147,10 @@
             return;
         }
 
+        if (data.invoice_email) {
+            document.getElementById('invoiceEmail').value = data.invoice_email;
+        }
+
         const invoices = data.invoices || [];
         if (invoices.length === 0) {
             document.getElementById('content').innerHTML = `
@@ -160,6 +185,38 @@
         document.getElementById('content').innerHTML = '<div class="msg msg-error">Fehler: ' + e.message + '</div>';
     }
 })();
+
+async function saveInvoiceEmail() {
+    const btn = document.getElementById('saveInvoiceEmail');
+    const status = document.getElementById('invoiceEmailStatus');
+    const value = document.getElementById('invoiceEmail').value.trim();
+    btn.disabled = true;
+    status.textContent = '';
+    try {
+        const { data: { session } } = await sb.auth.getSession();
+        if (!session) throw new Error('Keine aktive Session. Bitte neu einloggen.');
+        const res = await fetch(SUPABASE_URL + '/functions/v1/get-invoices', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + session.access_token,
+                'apikey': SUPABASE_ANON_KEY,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ invoice_email: value }),
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) throw new Error(data.error || 'Speichern fehlgeschlagen');
+        status.className = 'settings-status ok';
+        status.textContent = value
+            ? 'Gespeichert. Neue Rechnungen gehen ab sofort an ' + value + '.'
+            : 'Gespeichert. Automatischer Rechnungsversand ist deaktiviert.';
+    } catch (err) {
+        status.className = 'settings-status err';
+        status.textContent = 'Fehler: ' + err.message;
+    } finally {
+        btn.disabled = false;
+    }
+}
 
 async function downloadInvoice(e, invoiceId) {
     e.preventDefault();
