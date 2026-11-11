@@ -626,6 +626,44 @@
 </div>
 
 <script>
+// Amazon bulk files can declare a wrong <dimension> (e.g. A1:BB1 for a sheet with 4,474 rows). SheetJS keeps it
+// as !ref, so sheet_to_json / sheet_to_csv then return only the header row. Widen !ref to the cells that really
+// exist (never shrinks it; no-op for correct or empty sheets).
+function fixSheetRanges(wb) {
+    if (!wb || !wb.Sheets || typeof XLSX === 'undefined') return wb;
+    Object.keys(wb.Sheets).forEach(function (sn) {
+        try {
+            const ws = wb.Sheets[sn];
+            if (!ws) return;
+            let maxR = -1, maxC = -1;
+            const data = ws['!data'] || (Array.isArray(ws) ? ws : null);
+            if (data) {
+                for (let r = 0; r < data.length; r++) {
+                    const row = data[r];
+                    if (!row) continue;
+                    for (let c = row.length - 1; c >= 0; c--) {
+                        if (row[c] != null) { maxR = r; if (c > maxC) maxC = c; break; }
+                    }
+                }
+            } else {
+                Object.keys(ws).forEach(function (k) {
+                    if (k.charAt(0) === '!') return;
+                    const a = XLSX.utils.decode_cell(k);
+                    if (a.r > maxR) maxR = a.r;
+                    if (a.c > maxC) maxC = a.c;
+                });
+            }
+            if (maxR < 0) return;
+            const rg = ws['!ref'] ? XLSX.utils.decode_range(ws['!ref']) : { s: { r: 0, c: 0 }, e: { r: 0, c: 0 } };
+            if (maxR <= rg.e.r && maxC <= rg.e.c) return;
+            rg.e.r = Math.max(rg.e.r, maxR);
+            rg.e.c = Math.max(rg.e.c, maxC);
+            ws['!ref'] = XLSX.utils.encode_range(rg);
+        } catch (e) { /* leave this sheet as SheetJS parsed it */ }
+    });
+    return wb;
+}
+
 // --- Theme Toggle ---
 function initTheme() {
     const saved = localStorage.getItem('ppc_theme') || 'light';
@@ -1023,7 +1061,7 @@ document.addEventListener('drop', function(e) {
     if (file.name.match(/\.(xlsx|xls)$/i)) {
         reader.onload = function(evt) {
             const data = new Uint8Array(evt.target.result);
-            const wb = XLSX.read(data, { type: 'array' });
+            const wb = fixSheetRanges(XLSX.read(data, { type: 'array' }));
             const ws = wb.Sheets[wb.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
             const values = rows.flat().map(v => String(v).trim()).filter(Boolean);
@@ -1059,7 +1097,7 @@ document.addEventListener('change', function(e) {
     if (file.name.match(/\.(xlsx|xls)$/i)) {
         reader.onload = function(evt) {
             const data = new Uint8Array(evt.target.result);
-            const wb = XLSX.read(data, { type: 'array' });
+            const wb = fixSheetRanges(XLSX.read(data, { type: 'array' }));
             const ws = wb.Sheets[wb.SheetNames[0]];
             const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
             const values = rows.flat().map(v => String(v).trim()).filter(Boolean);
